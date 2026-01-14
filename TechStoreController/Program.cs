@@ -33,6 +33,9 @@ namespace TechStoreController
             // ============================================
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
+            builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+            builder.Services.AddScoped<IBrandRepository, BrandRepository>();
+            builder.Services.AddScoped<IProductImageRepository, ProductImageRepository>();
             builder.Services.AddScoped<IAddressRepository, AddressRepository>();
             builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();
             builder.Services.AddScoped<IOrderRepository, OrderRepository>();
@@ -46,6 +49,11 @@ namespace TechStoreController
             // Application Layer (BAL) - Services
             // ============================================
             builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<ICategoryService, CategoryService>();
+            builder.Services.AddScoped<IBrandService, BrandService>();
+            builder.Services.AddScoped<IProductImageService, ProductImageService>();
+            builder.Services.AddScoped<IProductService, ProductService>();
+            builder.Services.AddScoped<IOrderService, OrderService>();
             builder.Services.AddScoped<IAddressService, AddressService>();
             builder.Services.AddScoped<ICartService, CartService>();
             builder.Services.AddScoped<ICommentService, CommentService>();

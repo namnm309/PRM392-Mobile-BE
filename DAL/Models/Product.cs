@@ -39,6 +39,9 @@ namespace DAL.Models
         [Column("category_id")]
         public Guid? CategoryId { get; set; }
 
+        [Column("brand_id")]
+        public Guid? BrandId { get; set; }
+
         [Required]
         [Column("is_active")]
         public bool IsActive { get; set; } = true;
@@ -58,6 +61,13 @@ namespace DAL.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation Properties
+        [ForeignKey("CategoryId")]
+        public virtual Category? Category { get; set; }
+
+        [ForeignKey("BrandId")]
+        public virtual Brand? Brand { get; set; }
+
         public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
+        public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
     }
 }
