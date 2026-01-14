@@ -32,7 +32,9 @@ namespace DAL.Data
         public DbSet<Comment> Comments { get; set; }
         public DbSet<CommentReply> CommentReplies { get; set; }
         public DbSet<Voucher> Vouchers { get; set; }
-        public DbSet<VoucherUsage> VoucherUsages { get; set; }    
+        public DbSet<VoucherUsage> VoucherUsages { get; set; }
+        public DbSet<SupportChatSession> SupportChatSessions { get; set; }
+        public DbSet<SupportChatMessage> SupportChatMessages { get; set; }
 
 
 
@@ -149,6 +151,28 @@ namespace DAL.Data
                       .HasForeignKey(vu => vu.VoucherId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
+            modelBuilder.Entity<SupportChatSession>(entity =>
+            {
+                entity.HasKey(x => x.SessionId);
+                entity.Property(x => x.CreatedAt).IsRequired();
+                entity.Property(x => x.UpdatedAt).IsRequired();
+            });
+
+            modelBuilder.Entity<SupportChatMessage>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.UserMessage).IsRequired();
+                entity.Property(x => x.BotReply).IsRequired();
+                entity.Property(x => x.CreatedAt).IsRequired();
+
+                entity.HasIndex(x => new { x.SessionId, x.CreatedAt });
+
+                entity.HasOne(x => x.Session)
+                      .WithMany(s => s.Messages)
+                      .HasForeignKey(x => x.SessionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
         }
 
     }
