@@ -1,4 +1,4 @@
-﻿using DAL.Models;
+using DAL.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -25,6 +25,9 @@ namespace DAL.Data
         //Dbset biểu diễn 1 bảng của csdl 
         public DbSet<User> Users { get; set; }
         public DbSet<Product> Products { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<Brand> Brands { get; set; }
+        public DbSet<ProductImage> ProductImages { get; set; }
         public DbSet<Address> Addresses { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<Order> Orders { get; set; }
@@ -151,28 +154,48 @@ namespace DAL.Data
                       .HasForeignKey(vu => vu.VoucherId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
-            modelBuilder.Entity<SupportChatSession>(entity =>
+
+            // Category configuration
+            modelBuilder.Entity<Category>(entity =>
             {
-                entity.HasKey(x => x.SessionId);
-                entity.Property(x => x.CreatedAt).IsRequired();
-                entity.Property(x => x.UpdatedAt).IsRequired();
+                entity.HasIndex(c => c.Name);
+                entity.HasIndex(c => c.IsActive);
             });
 
-            modelBuilder.Entity<SupportChatMessage>(entity =>
+            // Brand configuration
+            modelBuilder.Entity<Brand>(entity =>
             {
-                entity.HasKey(x => x.Id);
-                entity.Property(x => x.UserMessage).IsRequired();
-                entity.Property(x => x.BotReply).IsRequired();
-                entity.Property(x => x.CreatedAt).IsRequired();
+                entity.HasIndex(b => b.Name);
+                entity.HasIndex(b => b.IsActive);
+            });
 
-                entity.HasIndex(x => new { x.SessionId, x.CreatedAt });
+            // Product configuration - Update with Category and Brand relationships
+            modelBuilder.Entity<Product>(entity =>
+            {
+                entity.HasIndex(p => p.CategoryId);
+                entity.HasIndex(p => p.BrandId);
+                entity.HasIndex(p => new { p.IsActive, p.CategoryId, p.BrandId });
+                entity.HasOne(p => p.Category)
+                      .WithMany(c => c.Products)
+                      .HasForeignKey(p => p.CategoryId)
+                      .OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(p => p.Brand)
+                      .WithMany(b => b.Products)
+                      .HasForeignKey(p => p.BrandId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
 
-                entity.HasOne(x => x.Session)
-                      .WithMany(s => s.Messages)
-                      .HasForeignKey(x => x.SessionId)
+            // ProductImage configuration
+            modelBuilder.Entity<ProductImage>(entity =>
+            {
+                entity.HasIndex(pi => pi.ProductId);
+                entity.HasIndex(pi => new { pi.ProductId, pi.ImageType });
+                entity.HasIndex(pi => new { pi.ProductId, pi.DisplayOrder });
+                entity.HasOne(pi => pi.Product)
+                      .WithMany(p => p.ProductImages)
+                      .HasForeignKey(pi => pi.ProductId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
-
         }
 
     }
