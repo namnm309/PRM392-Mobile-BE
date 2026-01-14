@@ -196,6 +196,29 @@ namespace DAL.Data
                       .HasForeignKey(pi => pi.ProductId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
+
+            modelBuilder.Entity<SupportChatSession>(entity =>
+            {
+                entity.HasKey(x => x.SessionId);
+                entity.Property(x => x.CreatedAt).IsRequired();
+                entity.Property(x => x.UpdatedAt).IsRequired();
+            });
+
+            modelBuilder.Entity<SupportChatMessage>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.UserMessage).IsRequired();
+                entity.Property(x => x.BotReply).IsRequired();
+                entity.Property(x => x.CreatedAt).IsRequired();
+
+                entity.HasIndex(x => new { x.SessionId, x.CreatedAt });
+
+                entity.HasOne(x => x.Session)
+                      .WithMany(s => s.Messages)
+                      .HasForeignKey(x => x.SessionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
         }
 
     }

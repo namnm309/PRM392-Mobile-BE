@@ -59,8 +59,8 @@ namespace TechStoreController
             builder.Services.AddScoped<ICommentService, CommentService>();
             builder.Services.AddScoped<IVoucherService, VoucherService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
-            builder.Services.AddHttpClient<MegaLlmGateway>();
-            builder.Services.AddScoped<ISupportChatService, SupportChatService>();
+            //builder.Services.AddHttpClient<MegaLlmGateway>();
+            //builder.Services.AddScoped<ISupportChatService, SupportChatService>();
 
             // ============================================
             // API Layer - Controllers & Swagger
