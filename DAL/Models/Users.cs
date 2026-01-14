@@ -73,11 +73,11 @@ namespace DAL.Models
         [MaxLength(20)]
         public string Status { get; set; } = "Active";
 
-        // Role: Customer, Admin, Staff       
+        // Role: Guest, Customer, Staff, Admin       
         [Required]
         [Column("role")]
         [MaxLength(20)]
-        public string Role { get; set; } = "Customer";
+        public string Role { get; set; } = "Guest";
 
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
