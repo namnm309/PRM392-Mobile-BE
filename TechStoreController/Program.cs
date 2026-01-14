@@ -1,5 +1,7 @@
 using DAL.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
+using System.Reflection;
 
 namespace TechStoreController
 {
@@ -20,16 +22,39 @@ namespace TechStoreController
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "TechStore API",
+                    Version = "v1",
+                    Description = "API documentation for TechStore Mobile Backend",
+                    Contact = new OpenApiContact
+                    {
+                        Name = "TechStore Team"
+                    }
+                });
+
+                // Include XML comments if available
+                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                if (File.Exists(xmlPath))
+                {
+                    c.IncludeXmlComments(xmlPath);
+                }
+            });
 
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            // Enable Swagger in all environments (including production)
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "TechStore API v1");
+                c.RoutePrefix = "swagger"; // Swagger UI will be available at /swagger
+                c.DisplayRequestDuration();
+            });
             
             // Auto apply EF Core migrations at startup
             ApplyPendingMigrations(app);
@@ -37,6 +62,9 @@ namespace TechStoreController
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
+
+            // Map root endpoint
+            app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
             app.MapControllers();
 
