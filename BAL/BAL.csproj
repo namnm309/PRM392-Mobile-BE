@@ -10,4 +10,8 @@
     <ProjectReference Include="..\DAL\DAL.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Svix" Version="1.84.1" />
+  </ItemGroup>
+
 </Project>

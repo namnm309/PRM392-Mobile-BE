@@ -1,3 +1,4 @@
+using BAL.Services;
 using DAL.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -19,7 +20,19 @@ namespace TechStoreController
             builder.Services.AddDbContext<TechStoreContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            builder.Services.AddControllers();
+            // Đăng ký Clerk Webhook Verifier
+            var clerkWebhookSecret = builder.Configuration["Clerk:WebhookSecret"] 
+                ?? throw new InvalidOperationException("Clerk:WebhookSecret is not configured");
+            builder.Services.AddSingleton(new ClerkWebhookVerifier(clerkWebhookSecret));
+
+            // Đăng ký UserService
+            builder.Services.AddScoped<IUserService, UserService>();
+
+            builder.Services.AddControllers(options =>
+            {
+                // Disable model binding cho webhook endpoint để có thể đọc raw body
+                options.ModelValidatorProviders.Clear();
+            });
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
@@ -47,6 +60,18 @@ namespace TechStoreController
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
+            
+            // Enable request buffering cho webhook endpoint - PHẢI ĐẶT TRƯỚC CÁC MIDDLEWARE KHÁC
+            app.Use(async (context, next) =>
+            {
+                if (context.Request.Path.StartsWithSegments("/api/webhook/clerk"))
+                {
+                    // Enable buffering với buffer size lớn để đảm bảo có thể đọc body
+                    context.Request.EnableBuffering(bufferLimit: 10485760); // 10MB
+                }
+                await next();
+            });
+
             // Enable Swagger in all environments (including production)
             app.UseSwagger();
             app.UseSwaggerUI(c =>
