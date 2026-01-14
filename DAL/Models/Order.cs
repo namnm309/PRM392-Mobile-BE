@@ -53,6 +53,16 @@ namespace DAL.Models
         [Column("delivered_at")]
         public DateTime? DeliveredAt { get; set; }
 
+        [Column("cancel_reason")]
+        [MaxLength(500)]
+        public string? CancelReason { get; set; }
+
+        [Column("cancelled_at")]
+        public DateTime? CancelledAt { get; set; }
+
+        [Column("cancelled_by")]
+        public Guid? CancelledBy { get; set; }
+
         // Navigation Properties
         [ForeignKey("UserId")]
         public virtual User User { get; set; } = null!;
