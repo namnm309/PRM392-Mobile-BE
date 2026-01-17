@@ -1,4 +1,5 @@
 using BAL.DTOs;
+using BAL.DTOs.User;
 using DAL.Data;
 using DAL.Models;
 using Microsoft.EntityFrameworkCore;
@@ -245,18 +246,226 @@ namespace BAL.Services
             return true;
         }
 
+        // ============================================
+        // API methods (cho UsersController)
+        // ============================================
+
         /// <summary>
-        /// Lấy user theo ClerkId (để debug/kiểm tra)
+        /// Map User entity sang UserResponseDto
         /// </summary>
-        public async Task<User?> GetUserByClerkIdAsync(string clerkId)
+        private static UserResponseDto MapToDto(User user)
+        {
+            return new UserResponseDto
+            {
+                Id = user.Id,
+                ClerkId = user.ClerkId,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                FullName = user.FullName,
+                AvatarUrl = user.AvatarUrl,
+                DateOfBirth = user.DateOfBirth,
+                Gender = user.Gender,
+                DefaultAddress = user.DefaultAddress,
+                City = user.City,
+                LoyaltyPoints = user.LoyaltyPoints,
+                Status = user.Status,
+                Role = user.Role,
+                CreatedAt = user.CreatedAt,
+                UpdatedAt = user.UpdatedAt,
+                LastLoginAt = user.LastLoginAt
+            };
+        }
+
+        /// <summary>
+        /// Lấy user theo ID
+        /// </summary>
+        public async Task<UserResponseDto?> GetUserByIdAsync(Guid id)
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return null;
+            }
+
+            return MapToDto(user);
+        }
+
+        /// <summary>
+        /// Lấy user theo ClerkId - API version
+        /// </summary>
+        public async Task<UserResponseDto?> GetUserByClerkIdAsync(string clerkId)
         {
             if (string.IsNullOrEmpty(clerkId))
             {
                 return null;
             }
 
-            return await _context.Users
+            var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.ClerkId == clerkId);
+
+            if (user == null)
+            {
+                return null;
+            }
+
+            return MapToDto(user);
+        }
+
+        /// <summary>
+        /// Tạo user mới từ API request
+        /// </summary>
+        public async Task<UserResponseDto> CreateUserAsync(CreateUserRequestDto request)
+        {
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            // Kiểm tra xem ClerkId đã tồn tại chưa
+            var existingUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.ClerkId == request.ClerkId);
+
+            if (existingUser != null)
+            {
+                throw new InvalidOperationException($"User with ClerkId '{request.ClerkId}' already exists");
+            }
+
+            // Kiểm tra email đã tồn tại chưa
+            var existingEmail = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == request.Email);
+
+            if (existingEmail != null)
+            {
+                throw new InvalidOperationException($"User with email '{request.Email}' already exists");
+            }
+
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                ClerkId = request.ClerkId,
+                Email = request.Email,
+                PhoneNumber = request.PhoneNumber,
+                FullName = request.FullName,
+                AvatarUrl = request.AvatarUrl,
+                DateOfBirth = request.DateOfBirth,
+                Gender = request.Gender,
+                DefaultAddress = request.DefaultAddress,
+                City = request.City,
+                Status = request.Status,
+                Role = request.Role,
+                LoyaltyPoints = 0,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            try
+            {
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+
+                return MapToDto(user);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            {
+                var innerException = dbEx.InnerException?.Message ?? dbEx.Message;
+                throw new InvalidOperationException(
+                    $"Failed to save user to database. ClerkId: {request.ClerkId}, Email: {request.Email}. " +
+                    $"Error: {innerException}", dbEx);
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật user từ API request
+        /// </summary>
+        public async Task<UserResponseDto?> UpdateUserAsync(Guid id, UpdateUserRequestDto request)
+        {
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return null;
+            }
+
+            // Cập nhật các field có giá trị
+            if (request.PhoneNumber != null)
+            {
+                user.PhoneNumber = request.PhoneNumber;
+            }
+
+            if (request.FullName != null)
+            {
+                user.FullName = request.FullName;
+            }
+
+            if (request.AvatarUrl != null)
+            {
+                user.AvatarUrl = request.AvatarUrl;
+            }
+
+            if (request.DateOfBirth.HasValue)
+            {
+                user.DateOfBirth = request.DateOfBirth;
+            }
+
+            if (request.Gender != null)
+            {
+                user.Gender = request.Gender;
+            }
+
+            if (request.DefaultAddress != null)
+            {
+                user.DefaultAddress = request.DefaultAddress;
+            }
+
+            if (request.City != null)
+            {
+                user.City = request.City;
+            }
+
+            user.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return MapToDto(user);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            {
+                var innerException = dbEx.InnerException?.Message ?? dbEx.Message;
+                throw new InvalidOperationException(
+                    $"Failed to update user in database. UserId: {id}. " +
+                    $"Error: {innerException}", dbEx);
+            }
+        }
+
+        /// <summary>
+        /// Xóa user (soft delete) từ API request
+        /// </summary>
+        public async Task<bool> DeleteUserAsync(Guid id)
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return false;
+            }
+
+            // Đánh dấu user là Inactive thay vì xóa (soft delete)
+            user.Status = "Inactive";
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return true;
         }
     }
 }

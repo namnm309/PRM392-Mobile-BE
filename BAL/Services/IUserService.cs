@@ -1,13 +1,18 @@
 using BAL.DTOs;
+using BAL.DTOs.User;
 using DAL.Models;
 
 namespace BAL.Services
 {
     /// <summary>
-    /// Interface cho UserService - xử lý logic đồng bộ user với Clerk
+    /// Interface cho UserService - xử lý logic đồng bộ user với Clerk và API operations
     /// </summary>
     public interface IUserService
     {
+        // ============================================
+        // Webhook methods (từ Clerk)
+        // ============================================
+        
         /// <summary>
         /// Tạo user mới khi nhận event user.created từ Clerk
         /// </summary>
@@ -23,9 +28,33 @@ namespace BAL.Services
         /// </summary>
         Task<bool> DeleteUserAsync(string clerkId);
 
+        // ============================================
+        // API methods (cho UsersController)
+        // ============================================
+        
         /// <summary>
-        /// Lấy user theo ClerkId (để debug/kiểm tra)
+        /// Lấy user theo ID
         /// </summary>
-        Task<User?> GetUserByClerkIdAsync(string clerkId);
+        Task<UserResponseDto?> GetUserByIdAsync(Guid id);
+
+        /// <summary>
+        /// Lấy user theo ClerkId
+        /// </summary>
+        Task<UserResponseDto?> GetUserByClerkIdAsync(string clerkId);
+
+        /// <summary>
+        /// Tạo user mới từ API request
+        /// </summary>
+        Task<UserResponseDto> CreateUserAsync(CreateUserRequestDto request);
+
+        /// <summary>
+        /// Cập nhật user từ API request
+        /// </summary>
+        Task<UserResponseDto?> UpdateUserAsync(Guid id, UpdateUserRequestDto request);
+
+        /// <summary>
+        /// Xóa user (soft delete) từ API request
+        /// </summary>
+        Task<bool> DeleteUserAsync(Guid id);
     }
 }

@@ -28,21 +28,16 @@ namespace TechStoreController
             builder.Services.AddDbContext<TechStoreContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-<<<<<<< HEAD
             // Đăng ký Clerk Webhook Verifier
             var clerkWebhookSecret = builder.Configuration["Clerk:WebhookSecret"] 
                 ?? throw new InvalidOperationException("Clerk:WebhookSecret is not configured");
             builder.Services.AddSingleton(new ClerkWebhookVerifier(clerkWebhookSecret));
-
-            // Đăng ký UserService
-            builder.Services.AddScoped<IUserService, UserService>();
 
             builder.Services.AddControllers(options =>
             {
                 // Disable model binding cho webhook endpoint để có thể đọc raw body
                 options.ModelValidatorProviders.Clear();
             });
-=======
             // ============================================
             // Infrastructure Layer (DAL) - Repositories
             // ============================================
@@ -76,11 +71,9 @@ namespace TechStoreController
             builder.Services.AddScoped<IDashboardService, DashboardService>();
 
             // ============================================
-            // API Layer - Controllers & Swagger
+            // API Layer - Swagger
             // ============================================
-            builder.Services.AddControllers();
             
->>>>>>> origin/dev
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
@@ -157,7 +150,6 @@ namespace TechStoreController
 
             var app = builder.Build();
 
-<<<<<<< HEAD
             // Configure the HTTP request pipeline.
             
             // Enable request buffering cho webhook endpoint - PHẢI ĐẶT TRƯỚC CÁC MIDDLEWARE KHÁC
@@ -172,7 +164,7 @@ namespace TechStoreController
             });
 
             // Enable Swagger in all environments (including production)
-=======
+
             // ============================================
             // Configure the HTTP request pipeline
             // ============================================
@@ -184,7 +176,6 @@ namespace TechStoreController
             app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             // Enable Swagger in all environments
->>>>>>> origin/dev
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
