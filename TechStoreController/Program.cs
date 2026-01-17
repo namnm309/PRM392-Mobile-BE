@@ -1,8 +1,13 @@
 using BAL.Services;
 using DAL.Data;
+using DAL.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
+using System.Text;
+using TechStoreController.Middleware;
 
 namespace TechStoreController
 {
@@ -16,10 +21,14 @@ namespace TechStoreController
             
             // HttpClient
             builder.Services.AddHttpClient();
-            // Cấu hình DbContext
+
+            // ============================================
+            // Infrastructure Layer (DAL) - DbContext
+            // ============================================
             builder.Services.AddDbContext<TechStoreContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+<<<<<<< HEAD
             // Đăng ký Clerk Webhook Verifier
             var clerkWebhookSecret = builder.Configuration["Clerk:WebhookSecret"] 
                 ?? throw new InvalidOperationException("Clerk:WebhookSecret is not configured");
@@ -33,6 +42,45 @@ namespace TechStoreController
                 // Disable model binding cho webhook endpoint để có thể đọc raw body
                 options.ModelValidatorProviders.Clear();
             });
+=======
+            // ============================================
+            // Infrastructure Layer (DAL) - Repositories
+            // ============================================
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IProductRepository, ProductRepository>();
+            builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+            builder.Services.AddScoped<IBrandRepository, BrandRepository>();
+            builder.Services.AddScoped<IProductImageRepository, ProductImageRepository>();
+            builder.Services.AddScoped<IAddressRepository, AddressRepository>();
+            builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();
+            builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+            builder.Services.AddScoped<IOrderItemRepository, OrderItemRepository>();
+            builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+            builder.Services.AddScoped<ICommentReplyRepository, CommentReplyRepository>();
+            builder.Services.AddScoped<IVoucherRepository, VoucherRepository>();
+            builder.Services.AddScoped<IVoucherUsageRepository, VoucherUsageRepository>();
+
+            // ============================================
+            // Application Layer (BAL) - Services
+            // ============================================
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<ICategoryService, CategoryService>();
+            builder.Services.AddScoped<IBrandService, BrandService>();
+            builder.Services.AddScoped<IProductImageService, ProductImageService>();
+            builder.Services.AddScoped<IProductService, ProductService>();
+            builder.Services.AddScoped<IOrderService, OrderService>();
+            builder.Services.AddScoped<IAddressService, AddressService>();
+            builder.Services.AddScoped<ICartService, CartService>();
+            builder.Services.AddScoped<ICommentService, CommentService>();
+            builder.Services.AddScoped<IVoucherService, VoucherService>();
+            builder.Services.AddScoped<IDashboardService, DashboardService>();
+
+            // ============================================
+            // API Layer - Controllers & Swagger
+            // ============================================
+            builder.Services.AddControllers();
+            
+>>>>>>> origin/dev
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
@@ -57,8 +105,59 @@ namespace TechStoreController
                 }
             });
 
+            // ============================================
+            // JWT Authentication Configuration
+            // ============================================
+            var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+            var secretKey = jwtSettings["SecretKey"] ?? "YourSuperSecretKeyForJWTTokenGenerationThatShouldBeAtLeast32CharactersLong";
+            var issuer = jwtSettings["Issuer"] ?? "TechStore";
+            var audience = jwtSettings["Audience"] ?? "TechStoreUsers";
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = issuer,
+                    ValidAudience = audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+                    ClockSkew = TimeSpan.Zero
+                };
+            });
+
+            // ============================================
+            // Authorization Policies
+            // ============================================
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy("CustomerOnly", policy => policy.RequireRole("Customer"));
+                options.AddPolicy("StaffOnly", policy => policy.RequireRole("Staff"));
+                options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+                options.AddPolicy("StaffOrAdmin", policy => policy.RequireRole("Staff", "Admin"));
+            });
+
+            // CORS configuration
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", policy =>
+                {
+                    policy.AllowAnyOrigin()
+                          .AllowAnyMethod()
+                          .AllowAnyHeader();
+                });
+            });
+
             var app = builder.Build();
 
+<<<<<<< HEAD
             // Configure the HTTP request pipeline.
             
             // Enable request buffering cho webhook endpoint - PHẢI ĐẶT TRƯỚC CÁC MIDDLEWARE KHÁC
@@ -73,6 +172,19 @@ namespace TechStoreController
             });
 
             // Enable Swagger in all environments (including production)
+=======
+            // ============================================
+            // Configure the HTTP request pipeline
+            // ============================================
+            
+            // Request ID middleware (should be first)
+            app.UseMiddleware<RequestIdMiddleware>();
+            
+            // Global exception handling middleware
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+            // Enable Swagger in all environments
+>>>>>>> origin/dev
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
@@ -86,6 +198,11 @@ namespace TechStoreController
 
             app.UseHttpsRedirection();
 
+            // CORS
+            app.UseCors("AllowAll");
+
+            // Authentication & Authorization
+            app.UseAuthentication();
             app.UseAuthorization();
 
             // Map root endpoint
