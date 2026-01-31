@@ -3,7 +3,7 @@ using System.Security.Claims;
 namespace TechStoreController.Helpers
 {
     /// <summary>
-    /// Helper class for JWT operations
+    /// Helper to read userId and role from claims (set after Clerk token validation in OnTokenValidated).
     /// </summary>
     public static class JwtHelper
     {
@@ -13,18 +13,27 @@ namespace TechStoreController.Helpers
         public const string RoleAdmin = "Admin";
 
         /// <summary>
-        /// Get user ID from JWT claims
+        /// Get user ID from JWT claims (prefer backend userId Guid added in OnTokenValidated).
         /// </summary>
         public static Guid? GetUserId(ClaimsPrincipal? user)
         {
-            var userIdClaim = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value 
-                           ?? user?.FindFirst("sub")?.Value
-                           ?? user?.FindFirst("userId")?.Value;
-            
+            var userIdClaim = user?.FindFirst("userId")?.Value
+                           ?? user?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                           ?? user?.FindFirst("sub")?.Value;
+
             if (Guid.TryParse(userIdClaim, out var userId))
                 return userId;
-            
+
             return null;
+        }
+
+        /// <summary>
+        /// Get Clerk ID from JWT claims (sub or clerkId added in OnTokenValidated).
+        /// </summary>
+        public static string? GetClerkId(ClaimsPrincipal? user)
+        {
+            return user?.FindFirst("clerkId")?.Value
+                ?? user?.FindFirst("sub")?.Value;
         }
 
         /// <summary>

@@ -1,13 +1,14 @@
+using System.Text.Json;
 using BAL.Services;
 using DAL.Data;
 using DAL.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
-using System.Text;
 using TechStoreController.Middleware;
+using TechStoreController.Services;
 
 namespace TechStoreController
 {
@@ -22,6 +23,16 @@ namespace TechStoreController
             // HttpClient
             builder.Services.AddHttpClient();
 
+            // Clerk Backend API (for dev token endpoint: get JWT by userId)
+            builder.Services.AddHttpClient<IClerkBackendApiService, ClerkBackendApiService>((sp, client) =>
+            {
+                var config = sp.GetRequiredService<IConfiguration>();
+                var secretKey = config["Clerk:SecretKey"] ?? "";
+                var baseUrl = (config["Clerk:BackendApiUrl"] ?? "https://api.clerk.com/v1").TrimEnd('/');
+                client.BaseAddress = new Uri(baseUrl + "/");
+                client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", "Bearer " + secretKey);
+            });
+
             // ============================================
             // Infrastructure Layer (DAL) - DbContext
             // ============================================
@@ -33,10 +44,19 @@ namespace TechStoreController
                 ?? throw new InvalidOperationException("Clerk:WebhookSecret is not configured");
             builder.Services.AddSingleton(new ClerkWebhookVerifier(clerkWebhookSecret));
 
+            // Clerk JWKS for JWT Bearer validation (validate Clerk token on every request)
+            builder.Services.AddSingleton<IClerkJwksProvider, ClerkJwksProvider>();
+            builder.Services.AddSingleton<IPostConfigureOptions<JwtBearerOptions>, ClerkJwtBearerPostConfigure>();
+
             builder.Services.AddControllers(options =>
             {
                 // Disable model binding cho webhook endpoint để có thể đọc raw body
                 options.ModelValidatorProviders.Clear();
+            })
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
             });
             // ============================================
             // Infrastructure Layer (DAL) - Repositories
@@ -82,10 +102,30 @@ namespace TechStoreController
                 {
                     Title = "TechStore API",
                     Version = "v1",
-                    Description = "API documentation for TechStore Mobile Backend",
+                    Description = "API documentation for TechStore Mobile Backend. Use Authorize to add Clerk JWT (lấy từ app hoặc GET /api/auth/dev/token?userId=user_xxx).",
                     Contact = new OpenApiContact
                     {
                         Name = "TechStore Team"
+                    }
+                });
+
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    Description = "Nhập Clerk session JWT (không cần gõ 'Bearer ')"
+                });
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                        },
+                        Array.Empty<string>()
                     }
                 });
 
@@ -99,32 +139,14 @@ namespace TechStoreController
             });
 
             // ============================================
-            // JWT Authentication Configuration
+            // JWT Authentication (Clerk token via JWKS)
             // ============================================
-            var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-            var secretKey = jwtSettings["SecretKey"] ?? "YourSuperSecretKeyForJWTTokenGenerationThatShouldBeAtLeast32CharactersLong";
-            var issuer = jwtSettings["Issuer"] ?? "TechStore";
-            var audience = jwtSettings["Audience"] ?? "TechStoreUsers";
-
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = issuer,
-                    ValidAudience = audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-                    ClockSkew = TimeSpan.Zero
-                };
-            });
+            .AddJwtBearer();
 
             // ============================================
             // Authorization Policies

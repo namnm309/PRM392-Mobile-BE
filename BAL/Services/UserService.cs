@@ -341,6 +341,10 @@ namespace BAL.Services
                 throw new InvalidOperationException($"User with email '{request.Email}' already exists");
             }
 
+            var dobUtc = request.DateOfBirth.HasValue
+                ? DateTime.SpecifyKind(request.DateOfBirth.Value, DateTimeKind.Utc)
+                : (DateTime?)null;
+
             var user = new User
             {
                 Id = Guid.NewGuid(),
@@ -349,7 +353,7 @@ namespace BAL.Services
                 PhoneNumber = request.PhoneNumber,
                 FullName = request.FullName,
                 AvatarUrl = request.AvatarUrl,
-                DateOfBirth = request.DateOfBirth,
+                DateOfBirth = dobUtc,
                 Gender = request.Gender,
                 DefaultAddress = request.DefaultAddress,
                 City = request.City,
@@ -410,9 +414,13 @@ namespace BAL.Services
                 user.AvatarUrl = request.AvatarUrl;
             }
 
-            if (request.DateOfBirth.HasValue)
+            if (request.DateOfBirth != null)
             {
-                user.DateOfBirth = request.DateOfBirth;
+                var trimmed = request.DateOfBirth.Trim();
+                if (trimmed.Length > 0 && DateTime.TryParse(trimmed, out var dob))
+                    user.DateOfBirth = DateTime.SpecifyKind(dob, DateTimeKind.Utc);
+                else
+                    user.DateOfBirth = null;
             }
 
             if (request.Gender != null)
@@ -443,6 +451,11 @@ namespace BAL.Services
                 throw new InvalidOperationException(
                     $"Failed to update user in database. UserId: {id}. " +
                     $"Error: {innerException}", dbEx);
+            }
+            catch (Exception ex) when (ex is not InvalidOperationException)
+            {
+                var msg = ex.InnerException?.Message ?? ex.Message;
+                throw new InvalidOperationException($"Update user failed: {msg}", ex);
             }
         }
 
