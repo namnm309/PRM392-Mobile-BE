@@ -7,9 +7,6 @@ using TechStoreController.Helpers;
 
 namespace TechStoreController.Controllers
 {
-    /// <summary>
-    /// Cart API Controller - Customer only
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
@@ -25,9 +22,6 @@ namespace TechStoreController.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Get current user's cart with availability status
-        /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<CartResponseDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<CartResponseDto>>> GetCart()
@@ -48,9 +42,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Add item to cart
-        /// </summary>
         [HttpPost("items")]
         [ProducesResponseType(typeof(ApiResponse<CartItemResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -89,9 +80,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Update cart item quantity
-        /// </summary>
         [HttpPut("items/{itemId}")]
         [ProducesResponseType(typeof(ApiResponse<CartItemResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -130,9 +118,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Remove item from cart
-        /// </summary>
         [HttpDelete("items/{itemId}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -157,9 +142,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Clear entire cart
-        /// </summary>
         [HttpDelete]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<object>>> ClearCart()
@@ -180,9 +162,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Validate cart for checkout
-        /// </summary>
         [HttpPost("validate")]
         [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<bool>>> ValidateCart()

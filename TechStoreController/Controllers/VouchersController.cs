@@ -7,9 +7,6 @@ using TechStoreController.Helpers;
 
 namespace TechStoreController.Controllers
 {
-    /// <summary>
-    /// Vouchers API Controller
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
@@ -24,9 +21,6 @@ namespace TechStoreController.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Get voucher by code (Public)
-        /// </summary>
         [HttpGet("{code}")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<VoucherResponseDto>), StatusCodes.Status200OK)]
@@ -48,9 +42,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Apply voucher at checkout (Customer only)
-        /// </summary>
         [HttpPost("apply")]
         [Authorize(Policy = "CustomerOnly")]
         [ProducesResponseType(typeof(ApiResponse<VoucherBreakdownResponseDto>), StatusCodes.Status200OK)]

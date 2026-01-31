@@ -7,9 +7,6 @@ using TechStoreController.Helpers;
 
 namespace TechStoreController.Controllers
 {
-    /// <summary>
-    /// Addresses API Controller - Customer only
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
@@ -25,9 +22,6 @@ namespace TechStoreController.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Get all addresses of the current user
-        /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<AddressResponseDto>>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<IEnumerable<AddressResponseDto>>>> GetMyAddresses()
@@ -48,9 +42,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Get address by ID (must belong to current user)
-        /// </summary>
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(ApiResponse<AddressResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -75,9 +66,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Create a new address
-        /// </summary>
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<AddressResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -116,9 +104,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Update address (must belong to current user)
-        /// </summary>
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(ApiResponse<AddressResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -152,9 +137,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Delete address (must belong to current user)
-        /// </summary>
         [HttpDelete("{id}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -179,9 +161,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Set address as primary (must belong to current user)
-        /// </summary>
         [HttpPost("{id}/set-primary")]
         [ProducesResponseType(typeof(ApiResponse<AddressResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]

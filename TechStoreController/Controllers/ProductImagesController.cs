@@ -6,9 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace TechStoreController.Controllers
 {
-    /// <summary>
-    /// ProductImages API Controller
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
@@ -23,9 +20,6 @@ namespace TechStoreController.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Get all images for a product (Public)
-        /// </summary>
         [HttpGet("product/{productId}")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<ProductImageResponseDto>>), StatusCodes.Status200OK)]
@@ -43,9 +37,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Get product image by ID (Public)
-        /// </summary>
         [HttpGet("{id}")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<ProductImageResponseDto>), StatusCodes.Status200OK)]
@@ -67,9 +58,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Create a new product image (Staff/Admin)
-        /// </summary>
         [HttpPost]
         [Authorize(Policy = "StaffOrAdmin")]
         [ProducesResponseType(typeof(ApiResponse<ProductImageResponseDto>), StatusCodes.Status201Created)]
@@ -109,9 +97,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Update product image (Staff/Admin)
-        /// </summary>
         [HttpPut("{id}")]
         [Authorize(Policy = "StaffOrAdmin")]
         [ProducesResponseType(typeof(ApiResponse<ProductImageResponseDto>), StatusCodes.Status200OK)]
@@ -146,9 +131,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Delete product image (Staff/Admin)
-        /// </summary>
         [HttpDelete("{id}")]
         [Authorize(Policy = "StaffOrAdmin")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
@@ -170,9 +152,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Set product image as main image (Staff/Admin)
-        /// </summary>
         [HttpPost("{id}/set-main")]
         [Authorize(Policy = "StaffOrAdmin")]
         [ProducesResponseType(typeof(ApiResponse<ProductImageResponseDto>), StatusCodes.Status200OK)]

@@ -6,9 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace TechStoreController.Controllers
 {
-    /// <summary>
-    /// Brands API Controller
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
@@ -23,9 +20,6 @@ namespace TechStoreController.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Get all brands (Public)
-        /// </summary>
         [HttpGet]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<BrandResponseDto>>), StatusCodes.Status200OK)]
@@ -43,9 +37,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Get brand by ID (Public)
-        /// </summary>
         [HttpGet("{id}")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<BrandResponseDto>), StatusCodes.Status200OK)]
@@ -67,9 +58,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Create a new brand (Staff/Admin)
-        /// </summary>
         [HttpPost]
         [Authorize(Policy = "StaffOrAdmin")]
         [ProducesResponseType(typeof(ApiResponse<BrandResponseDto>), StatusCodes.Status201Created)]
@@ -105,9 +93,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Update brand (Staff/Admin)
-        /// </summary>
         [HttpPut("{id}")]
         [Authorize(Policy = "StaffOrAdmin")]
         [ProducesResponseType(typeof(ApiResponse<BrandResponseDto>), StatusCodes.Status200OK)]
@@ -142,9 +127,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Delete brand (Staff/Admin) - Soft delete, deactivates all related products
-        /// </summary>
         [HttpDelete("{id}")]
         [Authorize(Policy = "StaffOrAdmin")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
@@ -166,9 +148,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Toggle brand active status (Staff/Admin) - Deactivates all related products when brand is deactivated
-        /// </summary>
         [HttpPost("{id}/toggle-active")]
         [Authorize(Policy = "StaffOrAdmin")]
         [ProducesResponseType(typeof(ApiResponse<BrandResponseDto>), StatusCodes.Status200OK)]

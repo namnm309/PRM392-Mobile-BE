@@ -6,9 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace TechStoreController.Controllers
 {
-    /// <summary>
-    /// Products API Controller
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
@@ -23,9 +20,6 @@ namespace TechStoreController.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Get all products (Public) - with optional filters
-        /// </summary>
         [HttpGet]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<ProductResponseDto>>), StatusCodes.Status200OK)]
@@ -46,9 +40,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Get product by ID with full details (Public)
-        /// </summary>
         [HttpGet("{id}")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<ProductResponseDto>), StatusCodes.Status200OK)]
@@ -70,9 +61,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Search products by name and/or brand (Public)
-        /// </summary>
         [HttpGet("search")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<ProductResponseDto>>), StatusCodes.Status200OK)]
@@ -93,9 +81,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Get similar products for comparison (Public)
-        /// </summary>
         [HttpGet("{id}/compare")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<ProductComparisonResponseDto>), StatusCodes.Status200OK)]
@@ -118,9 +103,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Create a new product (Staff/Admin)
-        /// </summary>
         [HttpPost]
         [Authorize(Policy = "StaffOrAdmin")]
         [ProducesResponseType(typeof(ApiResponse<ProductResponseDto>), StatusCodes.Status201Created)]
@@ -160,9 +142,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Update product (Staff/Admin)
-        /// </summary>
         [HttpPut("{id}")]
         [Authorize(Policy = "StaffOrAdmin")]
         [ProducesResponseType(typeof(ApiResponse<ProductResponseDto>), StatusCodes.Status200OK)]
@@ -201,9 +180,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Delete product (Staff/Admin) - Soft delete
-        /// </summary>
         [HttpDelete("{id}")]
         [Authorize(Policy = "StaffOrAdmin")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
@@ -225,9 +201,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Toggle product active status (Staff/Admin)
-        /// </summary>
         [HttpPost("{id}/toggle-active")]
         [Authorize(Policy = "StaffOrAdmin")]
         [ProducesResponseType(typeof(ApiResponse<ProductResponseDto>), StatusCodes.Status200OK)]
