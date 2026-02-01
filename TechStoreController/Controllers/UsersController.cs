@@ -11,7 +11,7 @@ namespace TechStoreController.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    [Authorize]
+    //[Authorize]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
