@@ -1,169 +1,258 @@
+using BAL.DTOs;
 using BAL.DTOs.User;
+using DAL.Data;
 using DAL.Models;
-using DAL.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace BAL.Services
 {
     /// <summary>
-    /// User service implementation - Contains business logic
+    /// Service xử lý logic đồng bộ user với Clerk
     /// </summary>
     public class UserService : IUserService
     {
-        private readonly IUserRepository _userRepository;
+        private readonly TechStoreContext _context;
 
-        public UserService(IUserRepository userRepository)
+        public UserService(TechStoreContext context)
         {
-            _userRepository = userRepository;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public async Task<UserResponseDto?> GetUserByIdAsync(Guid id)
+        /// <summary>
+        /// Tạo user mới khi nhận event user.created từ Clerk
+        /// </summary>
+        public async Task<User?> CreateUserAsync(ClerkWebhookDataDto clerkUser)
         {
-            var user = await _userRepository.GetByIdAsync(id);
-            return user == null ? null : MapToDto(user);
-        }
-
-        public async Task<UserResponseDto?> GetUserByClerkIdAsync(string clerkId)
-        {
-            var user = await _userRepository.GetByClerkIdAsync(clerkId);
-            return user == null ? null : MapToDto(user);
-        }
-
-        public async Task<UserResponseDto?> GetUserByEmailAsync(string email)
-        {
-            var user = await _userRepository.GetByEmailAsync(email);
-            return user == null ? null : MapToDto(user);
-        }
-
-        public async Task<UserResponseDto> CreateUserAsync(CreateUserRequestDto request)
-        {
-            // Business rule: Check if ClerkId already exists
-            if (await _userRepository.IsClerkIdExistsAsync(request.ClerkId))
+            if (clerkUser == null || string.IsNullOrEmpty(clerkUser.Id))
             {
-                throw new InvalidOperationException($"User with ClerkId '{request.ClerkId}' already exists");
+                return null;
             }
 
-            // Business rule: Check if Email already exists
-            if (await _userRepository.IsEmailExistsAsync(request.Email))
+            // Kiểm tra xem user đã tồn tại chưa
+            var existingUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.ClerkId == clerkUser.Id);
+
+            if (existingUser != null)
             {
-                throw new InvalidOperationException($"User with email '{request.Email}' already exists");
+                // User đã tồn tại, cập nhật thay vì tạo mới
+                return await UpdateUserAsync(clerkUser);
             }
 
-            // Business rule: Validate status
-            var validStatuses = new[] { "Active", "Inactive", "Banned" };
-            if (!validStatuses.Contains(request.Status))
+            // Lấy email từ email_addresses (lấy email đầu tiên đã verified hoặc primary)
+            string email = string.Empty;
+            if (clerkUser.EmailAddresses != null && clerkUser.EmailAddresses.Any())
             {
-                throw new ArgumentException($"Invalid status. Must be one of: {string.Join(", ", validStatuses)}");
+                var verifiedEmail = clerkUser.EmailAddresses
+                    .FirstOrDefault(e => e.Verification?.Status == "verified" || 
+                                        e.Verification?.Status == "from_oauth_google" ||
+                                        e.Verification?.Object == "verification_from_oauth");
+                email = verifiedEmail?.EmailAddress ?? clerkUser.EmailAddresses.FirstOrDefault()?.EmailAddress ?? string.Empty;
+            }
+            
+            // Nếu không có email từ email_addresses, thử lấy từ external_accounts
+            if (string.IsNullOrEmpty(email) && clerkUser.ExternalAccounts != null && clerkUser.ExternalAccounts.Any())
+            {
+                var externalAccount = clerkUser.ExternalAccounts.FirstOrDefault();
+                email = externalAccount?.EmailAddress ?? string.Empty;
+            }
+            
+            if (string.IsNullOrEmpty(email))
+            {
+                throw new InvalidOperationException($"Cannot create user without email. ClerkId: {clerkUser.Id}");
             }
 
-            // Business rule: Validate role
-            var validRoles = new[] { "Customer", "Admin", "Staff" };
-            if (!validRoles.Contains(request.Role))
+            // Lấy phone number
+            string? phoneNumber = null;
+            if (clerkUser.PhoneNumbers != null && clerkUser.PhoneNumbers.Any())
             {
-                throw new ArgumentException($"Invalid role. Must be one of: {string.Join(", ", validRoles)}");
+                var verifiedPhone = clerkUser.PhoneNumbers
+                    .FirstOrDefault(p => p.Verification?.Status == "verified");
+                phoneNumber = verifiedPhone?.PhoneNumber ?? clerkUser.PhoneNumbers.First().PhoneNumber;
+            }
+
+            // Tạo full name từ first_name và last_name
+            string? fullName = null;
+            if (!string.IsNullOrEmpty(clerkUser.FirstName) || !string.IsNullOrEmpty(clerkUser.LastName))
+            {
+                fullName = $"{clerkUser.FirstName} {clerkUser.LastName}".Trim();
+            }
+
+            // Convert timestamp từ milliseconds sang DateTime (phải dùng UtcDateTime cho PostgreSQL)
+            DateTime createdAt = DateTime.UtcNow;
+            if (clerkUser.CreatedAt.HasValue)
+            {
+                createdAt = DateTimeOffset.FromUnixTimeMilliseconds(clerkUser.CreatedAt.Value).UtcDateTime;
             }
 
             var user = new User
             {
                 Id = Guid.NewGuid(),
-                ClerkId = request.ClerkId,
-                Email = request.Email,
-                PhoneNumber = request.PhoneNumber,
-                FullName = request.FullName,
-                AvatarUrl = request.AvatarUrl,
-                DateOfBirth = request.DateOfBirth,
-                Gender = request.Gender,
-                DefaultAddress = request.DefaultAddress,
-                City = request.City,
-                Status = request.Status,
-                Role = request.Role,
-                LoyaltyPoints = 0, // New users start with 0 points
-                CreatedAt = DateTime.UtcNow,
+                ClerkId = clerkUser.Id,
+                Email = email,
+                PhoneNumber = phoneNumber,
+                FullName = fullName,
+                AvatarUrl = clerkUser.ImageUrl,
+                Status = "Active",
+                Role = "Customer",
+                CreatedAt = createdAt,
                 UpdatedAt = DateTime.UtcNow
             };
 
-            var createdUser = await _userRepository.AddAsync(user);
-            return MapToDto(createdUser);
+            try
+            {
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+                
+                // Log thành công
+                System.Diagnostics.Debug.WriteLine($"User created successfully: ClerkId={clerkUser.Id}, DbId={user.Id}, Email={email}");
+                
+                return user;
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            {
+                // Xử lý lỗi database constraint (unique key violation, etc.)
+                var innerException = dbEx.InnerException?.Message ?? dbEx.Message;
+                throw new InvalidOperationException(
+                    $"Failed to save user to database. ClerkId: {clerkUser.Id}, Email: {email}. " +
+                    $"Error: {innerException}", dbEx);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"Unexpected error saving user. ClerkId: {clerkUser.Id}, Email: {email}. " +
+                    $"Error: {ex.Message}", ex);
+            }
         }
 
-        public async Task<UserResponseDto?> UpdateUserAsync(Guid id, UpdateUserRequestDto request)
+        /// <summary>
+        /// Cập nhật user khi nhận event user.updated từ Clerk
+        /// </summary>
+        public async Task<User?> UpdateUserAsync(ClerkWebhookDataDto clerkUser)
         {
-            var user = await _userRepository.GetByIdAsync(id);
-            if (user == null)
+            if (clerkUser == null || string.IsNullOrEmpty(clerkUser.Id))
             {
                 return null;
             }
 
-            // Business rule: Only update provided fields
-            if (request.PhoneNumber != null)
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.ClerkId == clerkUser.Id);
+
+            if (user == null)
             {
-                user.PhoneNumber = request.PhoneNumber;
+                // User chưa tồn tại, tạo mới
+                return await CreateUserAsync(clerkUser);
             }
 
-            if (request.FullName != null)
+            // Cập nhật thông tin user
+            if (clerkUser.EmailAddresses != null && clerkUser.EmailAddresses.Any())
             {
-                user.FullName = request.FullName;
+                var verifiedEmail = clerkUser.EmailAddresses
+                    .FirstOrDefault(e => e.Verification?.Status == "verified" || 
+                                        e.Verification?.Status == "from_oauth_google" ||
+                                        e.Verification?.Object == "verification_from_oauth");
+                if (verifiedEmail != null && !string.IsNullOrEmpty(verifiedEmail.EmailAddress))
+                {
+                    user.Email = verifiedEmail.EmailAddress;
+                }
+                else
+                {
+                    var firstEmail = clerkUser.EmailAddresses.FirstOrDefault();
+                    if (firstEmail != null && !string.IsNullOrEmpty(firstEmail.EmailAddress))
+                    {
+                        user.Email = firstEmail.EmailAddress;
+                    }
+                }
+            }
+            
+            // Nếu không có email từ email_addresses, thử lấy từ external_accounts
+            if (string.IsNullOrEmpty(user.Email) && clerkUser.ExternalAccounts != null && clerkUser.ExternalAccounts.Any())
+            {
+                var externalAccount = clerkUser.ExternalAccounts.FirstOrDefault();
+                if (externalAccount != null && !string.IsNullOrEmpty(externalAccount.EmailAddress))
+                {
+                    user.Email = externalAccount.EmailAddress;
+                }
             }
 
-            if (request.AvatarUrl != null)
+            if (clerkUser.PhoneNumbers != null && clerkUser.PhoneNumbers.Any())
             {
-                user.AvatarUrl = request.AvatarUrl;
+                var verifiedPhone = clerkUser.PhoneNumbers
+                    .FirstOrDefault(p => p.Verification?.Status == "verified");
+                if (verifiedPhone != null && !string.IsNullOrEmpty(verifiedPhone.PhoneNumber))
+                {
+                    user.PhoneNumber = verifiedPhone.PhoneNumber;
+                }
+                else
+                {
+                    var firstPhone = clerkUser.PhoneNumbers.FirstOrDefault();
+                    if (firstPhone != null && !string.IsNullOrEmpty(firstPhone.PhoneNumber))
+                    {
+                        user.PhoneNumber = firstPhone.PhoneNumber;
+                    }
+                }
             }
 
-            if (request.DateOfBirth.HasValue)
+            // Cập nhật full name
+            if (!string.IsNullOrEmpty(clerkUser.FirstName) || !string.IsNullOrEmpty(clerkUser.LastName))
             {
-                user.DateOfBirth = request.DateOfBirth;
+                user.FullName = $"{clerkUser.FirstName} {clerkUser.LastName}".Trim();
             }
 
-            if (request.Gender != null)
+            // Cập nhật avatar
+            if (!string.IsNullOrEmpty(clerkUser.ImageUrl))
             {
-                user.Gender = request.Gender;
+                user.AvatarUrl = clerkUser.ImageUrl;
             }
 
-            if (request.DefaultAddress != null)
+            // Cập nhật timestamp (phải dùng UtcDateTime cho PostgreSQL)
+            if (clerkUser.UpdatedAt.HasValue)
             {
-                user.DefaultAddress = request.DefaultAddress;
+                user.UpdatedAt = DateTimeOffset.FromUnixTimeMilliseconds(clerkUser.UpdatedAt.Value).UtcDateTime;
+            }
+            else
+            {
+                user.UpdatedAt = DateTime.UtcNow;
             }
 
-            if (request.City != null)
-            {
-                user.City = request.City;
-            }
+            await _context.SaveChangesAsync();
 
-            user.UpdatedAt = DateTime.UtcNow;
-
-            var updatedUser = await _userRepository.UpdateAsync(user);
-            return MapToDto(updatedUser);
+            return user;
         }
 
-        public async Task<bool> DeleteUserAsync(Guid id)
+        /// <summary>
+        /// Xóa/Deactivate user khi nhận event user.deleted từ Clerk
+        /// </summary>
+        public async Task<bool> DeleteUserAsync(string clerkId)
         {
-            // Business rule: Soft delete - set status to Inactive instead of hard delete
-            var user = await _userRepository.GetByIdAsync(id);
+            if (string.IsNullOrEmpty(clerkId))
+            {
+                return false;
+            }
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.ClerkId == clerkId);
+
             if (user == null)
             {
                 return false;
             }
 
+            // Đánh dấu user là Inactive thay vì xóa (soft delete)
             user.Status = "Inactive";
             user.UpdatedAt = DateTime.UtcNow;
-            await _userRepository.UpdateAsync(user);
+
+            await _context.SaveChangesAsync();
+
             return true;
         }
 
-        public async Task<bool> UpdateLastLoginAsync(string clerkId)
-        {
-            var user = await _userRepository.GetByClerkIdAsync(clerkId);
-            if (user == null)
-            {
-                return false;
-            }
+        // ============================================
+        // API methods (cho UsersController)
+        // ============================================
 
-            user.LastLoginAt = DateTime.UtcNow;
-            user.UpdatedAt = DateTime.UtcNow;
-            await _userRepository.UpdateAsync(user);
-            return true;
-        }
-
+        /// <summary>
+        /// Map User entity sang UserResponseDto
+        /// </summary>
         private static UserResponseDto MapToDto(User user)
         {
             return new UserResponseDto
@@ -185,6 +274,211 @@ namespace BAL.Services
                 UpdatedAt = user.UpdatedAt,
                 LastLoginAt = user.LastLoginAt
             };
+        }
+
+        /// <summary>
+        /// Lấy user theo ID
+        /// </summary>
+        public async Task<UserResponseDto?> GetUserByIdAsync(Guid id)
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return null;
+            }
+
+            return MapToDto(user);
+        }
+
+        /// <summary>
+        /// Lấy user theo ClerkId - API version
+        /// </summary>
+        public async Task<UserResponseDto?> GetUserByClerkIdAsync(string clerkId)
+        {
+            if (string.IsNullOrEmpty(clerkId))
+            {
+                return null;
+            }
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.ClerkId == clerkId);
+
+            if (user == null)
+            {
+                return null;
+            }
+
+            return MapToDto(user);
+        }
+
+        /// <summary>
+        /// Tạo user mới từ API request
+        /// </summary>
+        public async Task<UserResponseDto> CreateUserAsync(CreateUserRequestDto request)
+        {
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            // Kiểm tra xem ClerkId đã tồn tại chưa
+            var existingUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.ClerkId == request.ClerkId);
+
+            if (existingUser != null)
+            {
+                throw new InvalidOperationException($"User with ClerkId '{request.ClerkId}' already exists");
+            }
+
+            // Kiểm tra email đã tồn tại chưa
+            var existingEmail = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == request.Email);
+
+            if (existingEmail != null)
+            {
+                throw new InvalidOperationException($"User with email '{request.Email}' already exists");
+            }
+
+            var dobUtc = request.DateOfBirth.HasValue
+                ? DateTime.SpecifyKind(request.DateOfBirth.Value, DateTimeKind.Utc)
+                : (DateTime?)null;
+
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                ClerkId = request.ClerkId,
+                Email = request.Email,
+                PhoneNumber = request.PhoneNumber,
+                FullName = request.FullName,
+                AvatarUrl = request.AvatarUrl,
+                DateOfBirth = dobUtc,
+                Gender = request.Gender,
+                DefaultAddress = request.DefaultAddress,
+                City = request.City,
+                Status = request.Status,
+                Role = request.Role,
+                LoyaltyPoints = 0,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            try
+            {
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+
+                return MapToDto(user);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            {
+                var innerException = dbEx.InnerException?.Message ?? dbEx.Message;
+                throw new InvalidOperationException(
+                    $"Failed to save user to database. ClerkId: {request.ClerkId}, Email: {request.Email}. " +
+                    $"Error: {innerException}", dbEx);
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật user từ API request
+        /// </summary>
+        public async Task<UserResponseDto?> UpdateUserAsync(Guid id, UpdateUserRequestDto request)
+        {
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return null;
+            }
+
+            // Cập nhật các field có giá trị
+            if (request.PhoneNumber != null)
+            {
+                user.PhoneNumber = request.PhoneNumber;
+            }
+
+            if (request.FullName != null)
+            {
+                user.FullName = request.FullName;
+            }
+
+            if (request.AvatarUrl != null)
+            {
+                user.AvatarUrl = request.AvatarUrl;
+            }
+
+            if (request.DateOfBirth != null)
+            {
+                var trimmed = request.DateOfBirth.Trim();
+                if (trimmed.Length > 0 && DateTime.TryParse(trimmed, out var dob))
+                    user.DateOfBirth = DateTime.SpecifyKind(dob, DateTimeKind.Utc);
+                else
+                    user.DateOfBirth = null;
+            }
+
+            if (request.Gender != null)
+            {
+                user.Gender = request.Gender;
+            }
+
+            if (request.DefaultAddress != null)
+            {
+                user.DefaultAddress = request.DefaultAddress;
+            }
+
+            if (request.City != null)
+            {
+                user.City = request.City;
+            }
+
+            user.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return MapToDto(user);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            {
+                var innerException = dbEx.InnerException?.Message ?? dbEx.Message;
+                throw new InvalidOperationException(
+                    $"Failed to update user in database. UserId: {id}. " +
+                    $"Error: {innerException}", dbEx);
+            }
+            catch (Exception ex) when (ex is not InvalidOperationException)
+            {
+                var msg = ex.InnerException?.Message ?? ex.Message;
+                throw new InvalidOperationException($"Update user failed: {msg}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Xóa user (soft delete) từ API request
+        /// </summary>
+        public async Task<bool> DeleteUserAsync(Guid id)
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return false;
+            }
+
+            // Đánh dấu user là Inactive thay vì xóa (soft delete)
+            user.Status = "Inactive";
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return true;
         }
     }
 }

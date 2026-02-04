@@ -17,7 +17,9 @@ namespace BAL.DTOs.User
         [Url(ErrorMessage = "Invalid URL format")]
         public string? AvatarUrl { get; set; }
 
-        public DateTime? DateOfBirth { get; set; }
+        /// <summary>Date of birth in ISO date format (YYYY-MM-DD). Accepted from mobile as string.</summary>
+        [MaxLength(20)]
+        public string? DateOfBirth { get; set; }
 
         [MaxLength(20, ErrorMessage = "Gender cannot exceed 20 characters")]
         public string? Gender { get; set; }

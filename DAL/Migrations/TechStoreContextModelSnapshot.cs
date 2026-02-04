@@ -90,7 +90,7 @@ namespace DAL.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("tbl_addresses");
+                    b.ToTable("tbl_addresses", (string)null);
                 });
 
             modelBuilder.Entity("DAL.Models.Brand", b =>
@@ -128,7 +128,7 @@ namespace DAL.Migrations
 
                     b.HasIndex("Name");
 
-                    b.ToTable("tbl_brands");
+                    b.ToTable("tbl_brands", (string)null);
                 });
 
             modelBuilder.Entity("DAL.Models.CartItem", b =>
@@ -168,7 +168,7 @@ namespace DAL.Migrations
 
                     b.HasIndex("UserId", "ProductId");
 
-                    b.ToTable("tbl_cart_items");
+                    b.ToTable("tbl_cart_items", (string)null);
                 });
 
             modelBuilder.Entity("DAL.Models.Category", b =>
@@ -206,7 +206,7 @@ namespace DAL.Migrations
 
                     b.HasIndex("Name");
 
-                    b.ToTable("tbl_categories");
+                    b.ToTable("tbl_categories", (string)null);
                 });
 
             modelBuilder.Entity("DAL.Models.Comment", b =>
@@ -248,7 +248,7 @@ namespace DAL.Migrations
                     b.HasIndex("UserId", "ProductId")
                         .IsUnique();
 
-                    b.ToTable("tbl_comments");
+                    b.ToTable("tbl_comments", (string)null);
                 });
 
             modelBuilder.Entity("DAL.Models.CommentReply", b =>
@@ -286,7 +286,7 @@ namespace DAL.Migrations
 
                     b.HasIndex("StaffId");
 
-                    b.ToTable("tbl_comment_replies");
+                    b.ToTable("tbl_comment_replies", (string)null);
                 });
 
             modelBuilder.Entity("DAL.Models.Order", b =>
@@ -366,7 +366,7 @@ namespace DAL.Migrations
 
                     b.HasIndex("VoucherId");
 
-                    b.ToTable("tbl_orders");
+                    b.ToTable("tbl_orders", (string)null);
                 });
 
             modelBuilder.Entity("DAL.Models.OrderItem", b =>
@@ -412,7 +412,7 @@ namespace DAL.Migrations
 
                     b.HasIndex("ProductId", "Status");
 
-                    b.ToTable("tbl_order_items");
+                    b.ToTable("tbl_order_items", (string)null);
                 });
 
             modelBuilder.Entity("DAL.Models.Product", b =>
@@ -485,7 +485,7 @@ namespace DAL.Migrations
 
                     b.HasIndex("IsActive", "CategoryId", "BrandId");
 
-                    b.ToTable("tbl_products");
+                    b.ToTable("tbl_products", (string)null);
                 });
 
             modelBuilder.Entity("DAL.Models.ProductImage", b =>
@@ -531,7 +531,7 @@ namespace DAL.Migrations
 
                     b.HasIndex("ProductId", "ImageType");
 
-                    b.ToTable("tbl_product_images");
+                    b.ToTable("tbl_product_images", (string)null);
                 });
 
             modelBuilder.Entity("DAL.Models.User", b =>
@@ -629,7 +629,7 @@ namespace DAL.Migrations
 
                     b.HasIndex("PhoneNumber");
 
-                    b.ToTable("tbl_users");
+                    b.ToTable("tbl_users", (string)null);
                 });
 
             modelBuilder.Entity("DAL.Models.Voucher", b =>
@@ -694,7 +694,7 @@ namespace DAL.Migrations
 
                     b.HasIndex("IsActive", "StartTime", "EndTime");
 
-                    b.ToTable("tbl_vouchers");
+                    b.ToTable("tbl_vouchers", (string)null);
                 });
 
             modelBuilder.Entity("DAL.Models.VoucherUsage", b =>
@@ -732,7 +732,7 @@ namespace DAL.Migrations
 
                     b.HasIndex("VoucherId", "UserId");
 
-                    b.ToTable("tbl_voucher_usages");
+                    b.ToTable("tbl_voucher_usages", (string)null);
                 });
 
             modelBuilder.Entity("DAL.Models.Address", b =>
