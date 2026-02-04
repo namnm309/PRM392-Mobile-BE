@@ -268,6 +268,8 @@ namespace BAL.Services
                     Id = product.Category.Id,
                     Name = product.Category.Name,
                     Description = product.Category.Description,
+                    ProductCount = 0,
+                    Children = [],
                     IsActive = product.Category.IsActive,
                     CreatedAt = product.Category.CreatedAt,
                     UpdatedAt = product.Category.UpdatedAt

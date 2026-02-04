@@ -31,7 +31,14 @@ namespace DAL.Models
         [Column("updated_at")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+        [Column("parent_id")]
+        public Guid? ParentId { get; set; }
+
         // Navigation Properties
+        [ForeignKey("ParentId")]
+        public virtual Category? Parent { get; set; }
+
+        public virtual ICollection<Category> Children { get; set; } = new List<Category>();
         public virtual ICollection<Product> Products { get; set; } = new List<Product>();
     }
 }

@@ -93,6 +93,40 @@ namespace TechStoreController.Controllers
             }
         }
 
+        [HttpPost("bulk")]
+        [Authorize(Policy = "StaffOrAdmin")]
+        [ProducesResponseType(typeof(ApiResponse<IEnumerable<CategoryResponseDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<ApiResponse<IEnumerable<CategoryResponseDto>>>> BulkCreateCategories([FromBody] List<BulkCreateCategoryItemDto> items)
+        {
+            try
+            {
+                if (items == null || items.Count == 0)
+                    return BadRequest(ApiResponse<IEnumerable<CategoryResponseDto>>.ErrorResponse("Request body must contain at least one category"));
+
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    return BadRequest(ApiResponse<IEnumerable<CategoryResponseDto>>.ErrorResponse("Validation failed", errors));
+                }
+
+                var categories = await _categoryService.BulkCreateCategoriesAsync(items);
+                return Ok(ApiResponse<IEnumerable<CategoryResponseDto>>.SuccessResponse(categories, "Categories created successfully"));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<IEnumerable<CategoryResponseDto>>.ErrorResponse(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error bulk creating categories");
+                return StatusCode(500, ApiResponse<IEnumerable<CategoryResponseDto>>.ErrorResponse("An error occurred while creating categories"));
+            }
+        }
+
         [HttpPut("{id}")]
         [Authorize(Policy = "StaffOrAdmin")]
         [ProducesResponseType(typeof(ApiResponse<CategoryResponseDto>), StatusCodes.Status200OK)]

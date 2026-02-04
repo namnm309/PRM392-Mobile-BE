@@ -3,17 +3,15 @@ using System.ComponentModel.DataAnnotations;
 namespace BAL.DTOs.Category
 {
     /// <summary>
-    /// Create category request DTO
+    /// DTO cho mỗi category trong bulk create - theo cấu trúc Swagger
     /// </summary>
-    public class CreateCategoryRequestDto
+    public class BulkCreateCategoryItemDto
     {
         [Required]
         [MaxLength(200)]
         public string Name { get; set; } = string.Empty;
 
         public string? Description { get; set; }
-
-        public bool IsActive { get; set; } = true;
 
         /// <summary>
         /// Danh sách tên các category con (sẽ được tạo và gán vào category cha này)
