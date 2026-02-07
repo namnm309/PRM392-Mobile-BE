@@ -8,11 +8,10 @@ namespace BAL.Services
     public interface ICategoryService
     {
         Task<CategoryResponseDto?> GetCategoryByIdAsync(Guid id);
-        Task<IEnumerable<CategoryResponseDto>> GetAllCategoriesAsync(bool? isActive = null);
+        Task<IEnumerable<CategoryResponseDto>> GetAllCategoriesAsync();
         Task<CategoryResponseDto> CreateCategoryAsync(CreateCategoryRequestDto request);
         Task<IEnumerable<CategoryResponseDto>> BulkCreateCategoriesAsync(IEnumerable<BulkCreateCategoryItemDto> items);
         Task<CategoryResponseDto?> UpdateCategoryAsync(Guid id, UpdateCategoryRequestDto request);
         Task<bool> DeleteCategoryAsync(Guid id);
-        Task<CategoryResponseDto?> ToggleActiveAsync(Guid id);
     }
 }

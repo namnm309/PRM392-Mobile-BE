@@ -21,10 +21,6 @@ namespace DAL.Models
         [Column("description", TypeName = "text")]
         public string? Description { get; set; }
 
-        [Required]
-        [Column("is_active")]
-        public bool IsActive { get; set; } = true;
-
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -33,6 +29,16 @@ namespace DAL.Models
 
         [Column("parent_id")]
         public Guid? ParentId { get; set; }
+
+        [Column("image_url")]
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        [Column("display_order")]
+        public int DisplayOrder { get; set; } = 0;
+
+        [Column("is_hot")]
+        public bool IsHot { get; set; } = false;
 
         // Navigation Properties
         [ForeignKey("ParentId")]

@@ -2,6 +2,7 @@ using BAL.DTOs.Category;
 using BAL.DTOs.Brand;
 using BAL.DTOs.Product;
 using BAL.DTOs.ProductImage;
+using DAL.Data;
 using DAL.Models;
 using DAL.Repositories;
 
@@ -15,15 +16,18 @@ namespace BAL.Services
         private readonly IProductRepository _productRepository;
         private readonly ICategoryRepository _categoryRepository;
         private readonly IBrandRepository _brandRepository;
+        private readonly TechStoreContext _context;
 
         public ProductService(
             IProductRepository productRepository,
             ICategoryRepository categoryRepository,
-            IBrandRepository brandRepository)
+            IBrandRepository brandRepository,
+            TechStoreContext context)
         {
             _productRepository = productRepository;
             _categoryRepository = categoryRepository;
             _brandRepository = brandRepository;
+            _context = context;
         }
 
         public async Task<ProductResponseDto?> GetProductByIdAsync(Guid id)
@@ -122,6 +126,57 @@ namespace BAL.Services
             var created = await _productRepository.AddAsync(product);
             var productWithDetails = await _productRepository.GetByIdWithDetailsAsync(created.Id);
             return MapToDto(productWithDetails!);
+        }
+
+        public async Task<IEnumerable<ProductResponseDto>> BulkCreateProductsAsync(IEnumerable<CreateProductRequestDto> items)
+        {
+            var itemsList = items.ToList();
+            if (itemsList.Count == 0)
+                throw new InvalidOperationException("Request body must contain at least one product");
+
+            foreach (var request in itemsList)
+            {
+                if (request.CategoryId.HasValue)
+                {
+                    var category = await _categoryRepository.GetByIdAsync(request.CategoryId.Value);
+                    if (category == null)
+                        throw new InvalidOperationException($"Category with id '{request.CategoryId}' not found");
+                }
+                if (request.BrandId.HasValue)
+                {
+                    var brand = await _brandRepository.GetByIdAsync(request.BrandId.Value);
+                    if (brand == null)
+                        throw new InvalidOperationException($"Brand with id '{request.BrandId}' not found");
+                }
+                if (request.DiscountPrice.HasValue && request.DiscountPrice.Value >= request.Price)
+                    throw new ArgumentException($"Discount price must be less than regular price for product '{request.Name}'");
+                if (request.Stock < 0)
+                    throw new ArgumentException($"Stock cannot be negative for product '{request.Name}'");
+            }
+
+            var now = DateTime.UtcNow;
+            var products = itemsList.Select(request => new Product
+            {
+                Id = Guid.NewGuid(),
+                Name = request.Name,
+                Description = request.Description,
+                Price = request.Price,
+                DiscountPrice = request.DiscountPrice,
+                Stock = request.Stock,
+                ImageUrl = request.ImageUrl,
+                CategoryId = request.CategoryId,
+                BrandId = request.BrandId,
+                IsActive = request.IsActive,
+                IsOnSale = request.IsOnSale,
+                NoVoucherTag = request.NoVoucherTag,
+                CreatedAt = now,
+                UpdatedAt = now
+            }).ToList();
+
+            await _context.Products.AddRangeAsync(products);
+            await _context.SaveChangesAsync();
+
+            return products.Select(MapToDto);
         }
 
         public async Task<ProductResponseDto?> UpdateProductAsync(Guid id, UpdateProductRequestDto request)
@@ -270,7 +325,6 @@ namespace BAL.Services
                     Description = product.Category.Description,
                     ProductCount = 0,
                     Children = [],
-                    IsActive = product.Category.IsActive,
                     CreatedAt = product.Category.CreatedAt,
                     UpdatedAt = product.Category.UpdatedAt
                 } : null,

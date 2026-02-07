@@ -39,7 +39,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "CustomerOnly")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<CommentResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<CommentResponseDto>>> CreateComment([FromBody] CreateCommentRequestDto request)
@@ -82,7 +82,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpPost("{commentId}/reply")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<CommentReplyResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<CommentReplyResponseDto>>> ReplyToComment(Guid commentId, [FromBody] CreateCommentReplyRequestDto request)

@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using BAL.Converters;
 
 namespace BAL.DTOs.Category
 {
@@ -13,11 +15,18 @@ namespace BAL.DTOs.Category
 
         public string? Description { get; set; }
 
-        public bool IsActive { get; set; } = true;
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public bool IsHot { get; set; } = false;
 
         /// <summary>
-        /// Danh sách tên các category con (sẽ được tạo và gán vào category cha này)
+        /// Danh sách category con (sẽ được tạo và gán vào category cha này).
+        /// Hỗ trợ format: ["Child1", "Child2"] hoặc [{"name":"Child1","imageUrl":null,"displayOrder":0,"isHot":false}]
         /// </summary>
-        public List<string> Children { get; set; } = new();
+        [JsonConverter(typeof(CategoryChildListJsonConverter))]
+        public List<CreateCategoryChildDto> Children { get; set; } = new();
     }
 }

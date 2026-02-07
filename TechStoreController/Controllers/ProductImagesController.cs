@@ -59,7 +59,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<ProductImageResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<ProductImageResponseDto>>> CreateProductImage([FromBody] CreateProductImageRequestDto request)
@@ -98,7 +98,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<ProductImageResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ApiResponse<ProductImageResponseDto>>> UpdateProductImage(Guid id, [FromBody] UpdateProductImageRequestDto request)
@@ -132,7 +132,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ApiResponse<object>>> DeleteProductImage(Guid id)
@@ -153,7 +153,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpPost("{id}/set-main")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<ProductImageResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<ProductImageResponseDto>>> SetMainImage(Guid id, [FromQuery] Guid productId)

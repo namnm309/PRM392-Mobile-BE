@@ -43,7 +43,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpPost("apply")]
-        [Authorize(Policy = "CustomerOnly")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<VoucherBreakdownResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<VoucherBreakdownResponseDto>>> ApplyVoucher([FromBody] ApplyVoucherRequestDto request, [FromQuery] List<Guid> cartItemIds)

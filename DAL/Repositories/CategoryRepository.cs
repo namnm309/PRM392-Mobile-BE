@@ -13,23 +13,15 @@ namespace DAL.Repositories
         {
         }
 
-        public async Task<IEnumerable<Category>> GetActiveCategoriesAsync()
-        {
-            return await _dbSet.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
-        }
-
         public async Task<Category?> GetByNameAsync(string name)
         {
             return await _dbSet.FirstOrDefaultAsync(c => c.Name == name);
         }
 
-        public async Task<IEnumerable<Category>> GetCategoriesWithChildrenAsync(bool? isActive = null)
+        public async Task<IEnumerable<Category>> GetCategoriesWithChildrenAsync()
         {
             var query = _dbSet.AsQueryable();
-            if (isActive.HasValue)
-                query = query.Where(c => c.IsActive == isActive.Value);
-
-            return await query.OrderBy(c => c.Name).ToListAsync();
+            return await query.OrderBy(c => c.DisplayOrder).ThenBy(c => c.Name).ToListAsync();
         }
     }
 }

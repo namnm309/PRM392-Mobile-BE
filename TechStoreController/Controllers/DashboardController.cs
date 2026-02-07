@@ -9,7 +9,7 @@ namespace TechStoreController.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    [Authorize(Policy = "AdminOnly")]
+    [AllowAnonymous]
     public class DashboardController : ControllerBase
     {
         private readonly IDashboardService _dashboardService;

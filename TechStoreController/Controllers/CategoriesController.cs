@@ -23,11 +23,11 @@ namespace TechStoreController.Controllers
         [HttpGet]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<CategoryResponseDto>>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<ApiResponse<IEnumerable<CategoryResponseDto>>>> GetCategories([FromQuery] bool? isActive = null)
+        public async Task<ActionResult<ApiResponse<IEnumerable<CategoryResponseDto>>>> GetCategories()
         {
             try
             {
-                var categories = await _categoryService.GetAllCategoriesAsync(isActive);
+                var categories = await _categoryService.GetAllCategoriesAsync();
                 return Ok(ApiResponse<IEnumerable<CategoryResponseDto>>.SuccessResponse(categories, "Categories retrieved successfully"));
             }
             catch (Exception ex)
@@ -59,7 +59,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<CategoryResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<CategoryResponseDto>>> CreateCategory([FromBody] CreateCategoryRequestDto request)
@@ -94,7 +94,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpPost("bulk")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<CategoryResponseDto>>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<IEnumerable<CategoryResponseDto>>>> BulkCreateCategories([FromBody] List<BulkCreateCategoryItemDto> items)
@@ -128,7 +128,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<CategoryResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ApiResponse<CategoryResponseDto>>> UpdateCategory(Guid id, [FromBody] UpdateCategoryRequestDto request)
@@ -162,7 +162,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ApiResponse<object>>> DeleteCategory(Guid id)
@@ -182,25 +182,5 @@ namespace TechStoreController.Controllers
             }
         }
 
-        [HttpPost("{id}/toggle-active")]
-        [Authorize(Policy = "StaffOrAdmin")]
-        [ProducesResponseType(typeof(ApiResponse<CategoryResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<ApiResponse<CategoryResponseDto>>> ToggleActive(Guid id)
-        {
-            try
-            {
-                var category = await _categoryService.ToggleActiveAsync(id);
-                if (category == null)
-                    return NotFound(ApiResponse<CategoryResponseDto>.ErrorResponse("Category not found"));
-
-                return Ok(ApiResponse<CategoryResponseDto>.SuccessResponse(category, "Category status toggled successfully"));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error toggling category status {CategoryId}", id);
-                return StatusCode(500, ApiResponse<CategoryResponseDto>.ErrorResponse("An error occurred while toggling category status"));
-            }
-        }
     }
 }

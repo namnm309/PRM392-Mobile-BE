@@ -157,7 +157,6 @@ namespace DAL.Data
             modelBuilder.Entity<Category>(entity =>
             {
                 entity.HasIndex(c => c.Name);
-                entity.HasIndex(c => c.IsActive);
                 entity.HasIndex(c => c.ParentId);
                 entity.HasOne(c => c.Parent)
                       .WithMany(c => c.Children)

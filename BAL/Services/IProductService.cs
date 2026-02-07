@@ -11,6 +11,7 @@ namespace BAL.Services
         Task<IEnumerable<ProductResponseDto>> GetAllProductsAsync(bool? isActive = null, Guid? categoryId = null, Guid? brandId = null);
         Task<IEnumerable<ProductResponseDto>> SearchProductsAsync(string? name = null, Guid? brandId = null, bool? isActive = null);
         Task<ProductResponseDto> CreateProductAsync(CreateProductRequestDto request);
+        Task<IEnumerable<ProductResponseDto>> BulkCreateProductsAsync(IEnumerable<CreateProductRequestDto> items);
         Task<ProductResponseDto?> UpdateProductAsync(Guid id, UpdateProductRequestDto request);
         Task<bool> DeleteProductAsync(Guid id);
         Task<ProductResponseDto?> ToggleActiveAsync(Guid id);

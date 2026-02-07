@@ -10,7 +10,7 @@ namespace TechStoreController.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    [Authorize]
+    [AllowAnonymous]
     public class OrdersController : ControllerBase
     {
         private readonly IOrderService _orderService;
@@ -97,7 +97,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpGet("search/by-orderid")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<PagedResponse<OrderResponseDto>>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<PagedResponse<OrderResponseDto>>>> SearchOrdersByOrderId(
             [FromQuery] string orderIdSearch,
@@ -122,7 +122,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpGet("search/by-user/{userId}")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<PagedResponse<OrderResponseDto>>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<PagedResponse<OrderResponseDto>>>> SearchOrdersByUserId(
             Guid userId,
@@ -142,7 +142,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "CustomerOnly")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<OrderResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<OrderResponseDto>>> CreateOrder([FromBody] CreateOrderRequestDto request)
@@ -181,7 +181,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<OrderResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ApiResponse<OrderResponseDto>>> UpdateOrder(Guid id, [FromBody] UpdateOrderRequestDto request)
