@@ -1,4 +1,4 @@
-﻿using BAL.DTOs.Common;
+using BAL.DTOs.Common;
 using BAL.DTOs.User;
 using BAL.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -64,9 +64,6 @@ namespace TechStoreController.Controllers
             if (currentUserId == null)
                 return Unauthorized(ApiResponse<UserResponseDto>.ErrorResponse("User not authenticated"));
 
-            if (currentUserId != id && !JwtHelper.HasRole(User, JwtHelper.RoleStaff, JwtHelper.RoleAdmin))
-                return StatusCode(403, ApiResponse<UserResponseDto>.ErrorResponse("Forbidden"));
-
             try
             {
                 var user = await _userService.GetUserByIdAsync(id);
@@ -94,9 +91,6 @@ namespace TechStoreController.Controllers
             var currentClerkId = JwtHelper.GetClerkId(User);
             if (string.IsNullOrEmpty(currentClerkId))
                 return Unauthorized(ApiResponse<UserResponseDto>.ErrorResponse("User not authenticated"));
-
-            if (currentClerkId != clerkId && !JwtHelper.HasRole(User, JwtHelper.RoleStaff, JwtHelper.RoleAdmin))
-                return StatusCode(403, ApiResponse<UserResponseDto>.ErrorResponse("Forbidden"));
 
             try
             {
@@ -219,9 +213,6 @@ namespace TechStoreController.Controllers
             var currentUserId = JwtHelper.GetUserId(User);
             if (currentUserId == null)
                 return Unauthorized(ApiResponse<object>.ErrorResponse("User not authenticated"));
-
-            if (currentUserId != id && !JwtHelper.HasRole(User, JwtHelper.RoleAdmin))
-                return StatusCode(403, ApiResponse<object>.ErrorResponse("Forbidden"));
 
             try
             {

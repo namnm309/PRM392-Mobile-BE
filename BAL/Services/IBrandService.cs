@@ -10,6 +10,7 @@ namespace BAL.Services
         Task<BrandResponseDto?> GetBrandByIdAsync(Guid id);
         Task<IEnumerable<BrandResponseDto>> GetAllBrandsAsync(bool? isActive = null);
         Task<BrandResponseDto> CreateBrandAsync(CreateBrandRequestDto request);
+        Task<IEnumerable<BrandResponseDto>> BulkCreateBrandsAsync(IEnumerable<CreateBrandRequestDto> items);
         Task<BrandResponseDto?> UpdateBrandAsync(Guid id, UpdateBrandRequestDto request);
         Task<bool> DeleteBrandAsync(Guid id);
         Task<BrandResponseDto?> ToggleActiveAsync(Guid id);

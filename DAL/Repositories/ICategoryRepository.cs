@@ -7,7 +7,7 @@ namespace DAL.Repositories
     /// </summary>
     public interface ICategoryRepository : IRepository<Category>
     {
-        Task<IEnumerable<Category>> GetActiveCategoriesAsync();
+        Task<IEnumerable<Category>> GetCategoriesWithChildrenAsync();
         Task<Category?> GetByNameAsync(string name);
     }
 }

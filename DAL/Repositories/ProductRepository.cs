@@ -13,6 +13,21 @@ namespace DAL.Repositories
         {
         }
 
+        public async Task<Dictionary<Guid, int>> GetProductCountByCategoryIdsAsync(IEnumerable<Guid> categoryIds)
+        {
+            var ids = categoryIds.ToList();
+            if (ids.Count == 0)
+                return new Dictionary<Guid, int>();
+
+            var counts = await _dbSet
+                .Where(p => p.CategoryId.HasValue && ids.Contains(p.CategoryId.Value))
+                .GroupBy(p => p.CategoryId!.Value)
+                .Select(g => new { CategoryId = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            return counts.ToDictionary(x => x.CategoryId, x => x.Count);
+        }
+
         public async Task<Product?> GetByIdWithTrackingAsync(Guid id)
         {
             return await _dbSet.FirstOrDefaultAsync(p => p.Id == id);

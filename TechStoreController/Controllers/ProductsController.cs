@@ -104,7 +104,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<ProductResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<ProductResponseDto>>> CreateProduct([FromBody] CreateProductRequestDto request)
@@ -142,8 +142,46 @@ namespace TechStoreController.Controllers
             }
         }
 
+        [HttpPost("bulk")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(ApiResponse<IEnumerable<ProductResponseDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<ApiResponse<IEnumerable<ProductResponseDto>>>> BulkCreateProducts([FromBody] List<CreateProductRequestDto> items)
+        {
+            try
+            {
+                if (items == null || items.Count == 0)
+                    return BadRequest(ApiResponse<IEnumerable<ProductResponseDto>>.ErrorResponse("Request body must contain at least one product"));
+
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    return BadRequest(ApiResponse<IEnumerable<ProductResponseDto>>.ErrorResponse("Validation failed", errors));
+                }
+
+                var products = await _productService.BulkCreateProductsAsync(items);
+                return Ok(ApiResponse<IEnumerable<ProductResponseDto>>.SuccessResponse(products, "Products created successfully"));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<IEnumerable<ProductResponseDto>>.ErrorResponse(ex.Message));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<IEnumerable<ProductResponseDto>>.ErrorResponse(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error bulk creating products");
+                return StatusCode(500, ApiResponse<IEnumerable<ProductResponseDto>>.ErrorResponse("An error occurred while creating products"));
+            }
+        }
+
         [HttpPut("{id}")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<ProductResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ApiResponse<ProductResponseDto>>> UpdateProduct(Guid id, [FromBody] UpdateProductRequestDto request)
@@ -181,7 +219,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ApiResponse<object>>> DeleteProduct(Guid id)
@@ -202,7 +240,7 @@ namespace TechStoreController.Controllers
         }
 
         [HttpPost("{id}/toggle-active")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<ProductResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ApiResponse<ProductResponseDto>>> ToggleActive(Guid id)

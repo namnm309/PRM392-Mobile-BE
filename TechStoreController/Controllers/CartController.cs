@@ -10,7 +10,7 @@ namespace TechStoreController.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    [Authorize]
+    [AllowAnonymous]
     public class CartController : ControllerBase
     {
         private readonly ICartService _cartService;

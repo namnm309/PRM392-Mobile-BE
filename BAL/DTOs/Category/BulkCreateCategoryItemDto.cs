@@ -5,9 +5,9 @@ using BAL.Converters;
 namespace BAL.DTOs.Category
 {
     /// <summary>
-    /// Create category request DTO
+    /// DTO cho mỗi category trong bulk create - theo cấu trúc Swagger
     /// </summary>
-    public class CreateCategoryRequestDto
+    public class BulkCreateCategoryItemDto
     {
         [Required]
         [MaxLength(200)]
