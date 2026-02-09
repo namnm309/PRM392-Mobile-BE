@@ -6,13 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace TechStoreController.Controllers
 {
-    /// <summary>
-    /// Dashboard API Controller - Admin only
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    [Authorize(Policy = "AdminOnly")]
+    [AllowAnonymous]
     public class DashboardController : ControllerBase
     {
         private readonly IDashboardService _dashboardService;
@@ -24,9 +21,6 @@ namespace TechStoreController.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Get dashboard overview statistics
-        /// </summary>
         [HttpGet("overview")]
         [ProducesResponseType(typeof(ApiResponse<DashboardOverviewResponseDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<DashboardOverviewResponseDto>>> GetOverview(
@@ -48,9 +42,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Get top products by revenue
-        /// </summary>
         [HttpGet("top-products")]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<TopProductResponseDto>>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<IEnumerable<TopProductResponseDto>>>> GetTopProducts(
@@ -73,9 +64,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Get orders time series data
-        /// </summary>
         [HttpGet("orders-series")]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<OrdersSeriesResponseDto>>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<IEnumerable<OrdersSeriesResponseDto>>>> GetOrdersSeries(
@@ -103,9 +91,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Get voucher usage statistics
-        /// </summary>
         [HttpGet("voucher-usage")]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<VoucherUsageResponseDto>>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<IEnumerable<VoucherUsageResponseDto>>>> GetVoucherUsage(

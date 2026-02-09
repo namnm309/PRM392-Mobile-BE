@@ -6,9 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace TechStoreController.Controllers
 {
-    /// <summary>
-    /// Brands API Controller
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
@@ -23,9 +20,6 @@ namespace TechStoreController.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Get all brands (Public)
-        /// </summary>
         [HttpGet]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<BrandResponseDto>>), StatusCodes.Status200OK)]
@@ -43,9 +37,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Get brand by ID (Public)
-        /// </summary>
         [HttpGet("{id}")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<BrandResponseDto>), StatusCodes.Status200OK)]
@@ -67,11 +58,8 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Create a new brand (Staff/Admin)
-        /// </summary>
         [HttpPost]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<BrandResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<BrandResponseDto>>> CreateBrand([FromBody] CreateBrandRequestDto request)
@@ -105,11 +93,42 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Update brand (Staff/Admin)
-        /// </summary>
+        [HttpPost("bulk")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(ApiResponse<IEnumerable<BrandResponseDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<ApiResponse<IEnumerable<BrandResponseDto>>>> BulkCreateBrands([FromBody] List<CreateBrandRequestDto> items)
+        {
+            try
+            {
+                if (items == null || items.Count == 0)
+                    return BadRequest(ApiResponse<IEnumerable<BrandResponseDto>>.ErrorResponse("Request body must contain at least one brand"));
+
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    return BadRequest(ApiResponse<IEnumerable<BrandResponseDto>>.ErrorResponse("Validation failed", errors));
+                }
+
+                var brands = await _brandService.BulkCreateBrandsAsync(items);
+                return Ok(ApiResponse<IEnumerable<BrandResponseDto>>.SuccessResponse(brands, "Brands created successfully"));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<IEnumerable<BrandResponseDto>>.ErrorResponse(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error bulk creating brands");
+                return StatusCode(500, ApiResponse<IEnumerable<BrandResponseDto>>.ErrorResponse("An error occurred while creating brands"));
+            }
+        }
+
         [HttpPut("{id}")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<BrandResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ApiResponse<BrandResponseDto>>> UpdateBrand(Guid id, [FromBody] UpdateBrandRequestDto request)
@@ -142,11 +161,8 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Delete brand (Staff/Admin) - Soft delete, deactivates all related products
-        /// </summary>
         [HttpDelete("{id}")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ApiResponse<object>>> DeleteBrand(Guid id)
@@ -166,11 +182,8 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Toggle brand active status (Staff/Admin) - Deactivates all related products when brand is deactivated
-        /// </summary>
         [HttpPost("{id}/toggle-active")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<BrandResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ApiResponse<BrandResponseDto>>> ToggleActive(Guid id)

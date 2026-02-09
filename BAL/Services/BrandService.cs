@@ -69,6 +69,47 @@ namespace BAL.Services
             return MapToDto(created);
         }
 
+        public async Task<IEnumerable<BrandResponseDto>> BulkCreateBrandsAsync(IEnumerable<CreateBrandRequestDto> items)
+        {
+            var itemsList = items.ToList();
+            if (itemsList.Count == 0)
+                throw new InvalidOperationException("Request body must contain at least one brand");
+
+            // Check duplicate names in request
+            var namesInRequest = itemsList.Select(i => i.Name.Trim()).ToList();
+            var duplicates = namesInRequest
+                .GroupBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+            if (duplicates.Any())
+                throw new InvalidOperationException($"Duplicate brand names in request: {string.Join(", ", duplicates)}");
+
+            // Check existing brands in DB
+            foreach (var item in itemsList)
+            {
+                var existing = await _brandRepository.GetByNameAsync(item.Name.Trim());
+                if (existing != null)
+                    throw new InvalidOperationException($"Brand with name '{item.Name}' already exists");
+            }
+
+            var now = DateTime.UtcNow;
+            var brands = itemsList.Select(item => new Brand
+            {
+                Id = Guid.NewGuid(),
+                Name = item.Name.Trim(),
+                Description = item.Description,
+                IsActive = item.IsActive,
+                CreatedAt = now,
+                UpdatedAt = now
+            }).ToList();
+
+            await _context.Brands.AddRangeAsync(brands);
+            await _context.SaveChangesAsync();
+
+            return brands.Select(MapToDto);
+        }
+
         public async Task<BrandResponseDto?> UpdateBrandAsync(Guid id, UpdateBrandRequestDto request)
         {
             var brand = await _brandRepository.GetByIdAsync(id);

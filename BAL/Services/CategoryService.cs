@@ -10,36 +10,36 @@ namespace BAL.Services
     public class CategoryService : ICategoryService
     {
         private readonly ICategoryRepository _categoryRepository;
+        private readonly IProductRepository _productRepository;
 
-        public CategoryService(ICategoryRepository categoryRepository)
+        public CategoryService(ICategoryRepository categoryRepository, IProductRepository productRepository)
         {
             _categoryRepository = categoryRepository;
+            _productRepository = productRepository;
         }
 
         public async Task<CategoryResponseDto?> GetCategoryByIdAsync(Guid id)
         {
             var category = await _categoryRepository.GetByIdAsync(id);
-            return category == null ? null : MapToDto(category);
+            if (category == null) return null;
+
+            var productCount = await _productRepository.CountAsync(p => p.CategoryId == id);
+            return MapToDto(category, productCount, []);
         }
 
-        public async Task<IEnumerable<CategoryResponseDto>> GetAllCategoriesAsync(bool? isActive = null)
+        public async Task<IEnumerable<CategoryResponseDto>> GetAllCategoriesAsync()
         {
-            IEnumerable<Category> categories;
-            
-            if (isActive.HasValue && isActive.Value)
-            {
-                categories = await _categoryRepository.GetActiveCategoriesAsync();
-            }
-            else if (isActive.HasValue && !isActive.Value)
-            {
-                categories = await _categoryRepository.FindAsync(c => !c.IsActive);
-            }
-            else
-            {
-                categories = await _categoryRepository.GetAllAsync();
-            }
+            var categories = await _categoryRepository.GetCategoriesWithChildrenAsync();
+            var categoryList = categories.ToList();
+            var activeParentIds = categoryList.Select(c => c.Id).ToHashSet();
 
-            return categories.Select(MapToDto);
+            // Root = ParentId == null OR parent is inactive (not in current list) - show orphaned children at root level
+            var rootCategories = categoryList
+                .Where(c => c.ParentId == null || !activeParentIds.Contains(c.ParentId.Value))
+                .ToList();
+            var productCounts = await GetProductCountsAsync(categoryList.Select(c => c.Id));
+
+            return rootCategories.Select(root => BuildCategoryTree(root, categoryList, productCounts));
         }
 
         public async Task<CategoryResponseDto> CreateCategoryAsync(CreateCategoryRequestDto request)
@@ -56,13 +56,100 @@ namespace BAL.Services
                 Id = Guid.NewGuid(),
                 Name = request.Name,
                 Description = request.Description,
-                IsActive = request.IsActive,
+                ImageUrl = request.ImageUrl,
+                DisplayOrder = request.DisplayOrder,
+                IsHot = request.IsHot,
+                ParentId = null,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
 
             var created = await _categoryRepository.AddAsync(category);
-            return MapToDto(created);
+            var childDtos = new List<CategoryResponseDto>();
+
+            // Tạo các category con nếu có
+            foreach (var childItem in request.Children.Where(c => !string.IsNullOrWhiteSpace(c.Name)))
+            {
+                var childExisting = await _categoryRepository.GetByNameAsync(childItem.Name.Trim());
+                if (childExisting != null)
+                    throw new InvalidOperationException($"Child category with name '{childItem.Name}' already exists");
+
+                var child = new Category
+                {
+                    Id = Guid.NewGuid(),
+                    Name = childItem.Name.Trim(),
+                    Description = null,
+                    ImageUrl = childItem.ImageUrl,
+                    DisplayOrder = childItem.DisplayOrder,
+                    IsHot = childItem.IsHot,
+                    ParentId = created.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                await _categoryRepository.AddAsync(child);
+                childDtos.Add(MapToDto(child, 0, []));
+            }
+
+            var productCount = await _productRepository.CountAsync(p => p.CategoryId == created.Id);
+            return MapToDto(created, productCount, childDtos);
+        }
+
+        public async Task<IEnumerable<CategoryResponseDto>> BulkCreateCategoriesAsync(IEnumerable<BulkCreateCategoryItemDto> items)
+        {
+            var result = new List<CategoryResponseDto>();
+            var itemsList = items.ToList();
+
+            foreach (var item in itemsList)
+            {
+                // Tạo category cha
+                var existing = await _categoryRepository.GetByNameAsync(item.Name);
+                if (existing != null)
+                    throw new InvalidOperationException($"Category with name '{item.Name}' already exists");
+
+                var parent = new Category
+                {
+                    Id = Guid.NewGuid(),
+                    Name = item.Name,
+                    Description = item.Description,
+                    ImageUrl = item.ImageUrl,
+                    DisplayOrder = item.DisplayOrder,
+                    IsHot = item.IsHot,
+                    ParentId = null,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                await _categoryRepository.AddAsync(parent);
+
+                var childDtos = new List<CategoryResponseDto>();
+
+                // Tạo các category con
+                foreach (var childItem in item.Children.Where(c => !string.IsNullOrWhiteSpace(c.Name)))
+                {
+                    var childExisting = await _categoryRepository.GetByNameAsync(childItem.Name.Trim());
+                    if (childExisting != null)
+                        throw new InvalidOperationException($"Child category with name '{childItem.Name}' already exists");
+
+                    var child = new Category
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = childItem.Name.Trim(),
+                        Description = null,
+                        ImageUrl = childItem.ImageUrl,
+                        DisplayOrder = childItem.DisplayOrder,
+                        IsHot = childItem.IsHot,
+                        ParentId = parent.Id,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    await _categoryRepository.AddAsync(child);
+                    childDtos.Add(MapToDto(child, 0, []));
+                }
+
+                var parentProductCount = await _productRepository.CountAsync(p => p.CategoryId == parent.Id);
+                result.Add(MapToDto(parent, parentProductCount, childDtos));
+            }
+
+            return result;
         }
 
         public async Task<CategoryResponseDto?> UpdateCategoryAsync(Guid id, UpdateCategoryRequestDto request)
@@ -85,48 +172,75 @@ namespace BAL.Services
             if (request.Description != null)
                 category.Description = request.Description;
 
-            if (request.IsActive.HasValue)
-                category.IsActive = request.IsActive.Value;
+            if (request.ImageUrl != null)
+                category.ImageUrl = request.ImageUrl;
+
+            if (request.DisplayOrder.HasValue)
+                category.DisplayOrder = request.DisplayOrder.Value;
+
+            if (request.IsHot.HasValue)
+                category.IsHot = request.IsHot.Value;
+
+            if (request.ParentId.HasValue)
+                category.ParentId = request.ParentId.Value;
 
             category.UpdatedAt = DateTime.UtcNow;
 
             var updated = await _categoryRepository.UpdateAsync(category);
-            return MapToDto(updated);
+            var productCount = await _productRepository.CountAsync(p => p.CategoryId == id);
+            return MapToDto(updated, productCount, []);
         }
 
         public async Task<bool> DeleteCategoryAsync(Guid id)
         {
-            // Business rule: Soft delete - set IsActive = false
-            var category = await _categoryRepository.GetByIdAsync(id);
-            if (category == null)
-                return false;
-
-            category.IsActive = false;
-            category.UpdatedAt = DateTime.UtcNow;
-            await _categoryRepository.UpdateAsync(category);
-            return true;
+            // Hard delete: remove category from database
+            return await _categoryRepository.DeleteAsync(id);
         }
 
-        public async Task<CategoryResponseDto?> ToggleActiveAsync(Guid id)
+        private async Task<Dictionary<Guid, int>> GetProductCountsAsync(IEnumerable<Guid> categoryIds)
         {
-            var category = await _categoryRepository.GetByIdAsync(id);
-            if (category == null)
-                return null;
-
-            category.IsActive = !category.IsActive;
-            category.UpdatedAt = DateTime.UtcNow;
-            var updated = await _categoryRepository.UpdateAsync(category);
-            return MapToDto(updated);
+            return await _productRepository.GetProductCountByCategoryIdsAsync(categoryIds);
         }
 
-        private static CategoryResponseDto MapToDto(Category category)
+        private CategoryResponseDto BuildCategoryTree(
+            Category category,
+            List<Category> allCategories,
+            Dictionary<Guid, int> productCounts)
+        {
+            var children = allCategories
+                .Where(c => c.ParentId == category.Id)
+                .OrderBy(c => c.DisplayOrder)
+                .ThenBy(c => c.Name)
+                .ToList();
+            var productCount = productCounts.GetValueOrDefault(category.Id, 0);
+
+            return new CategoryResponseDto
+            {
+                Id = category.Id,
+                Name = category.Name,
+                Description = category.Description,
+                ImageUrl = category.ImageUrl,
+                DisplayOrder = category.DisplayOrder,
+                IsHot = category.IsHot,
+                ProductCount = productCount,
+                Children = children.Select(c => BuildCategoryTree(c, allCategories, productCounts)).ToList(),
+                CreatedAt = category.CreatedAt,
+                UpdatedAt = category.UpdatedAt
+            };
+        }
+
+        private static CategoryResponseDto MapToDto(Category category, int productCount, List<CategoryResponseDto> children)
         {
             return new CategoryResponseDto
             {
                 Id = category.Id,
                 Name = category.Name,
                 Description = category.Description,
-                IsActive = category.IsActive,
+                ImageUrl = category.ImageUrl,
+                DisplayOrder = category.DisplayOrder,
+                IsHot = category.IsHot,
+                ProductCount = productCount,
+                Children = children,
                 CreatedAt = category.CreatedAt,
                 UpdatedAt = category.UpdatedAt
             };

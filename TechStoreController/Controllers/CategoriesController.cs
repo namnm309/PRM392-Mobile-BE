@@ -6,9 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace TechStoreController.Controllers
 {
-    /// <summary>
-    /// Categories API Controller
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
@@ -23,17 +20,14 @@ namespace TechStoreController.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Get all categories (Public)
-        /// </summary>
         [HttpGet]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<CategoryResponseDto>>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<ApiResponse<IEnumerable<CategoryResponseDto>>>> GetCategories([FromQuery] bool? isActive = null)
+        public async Task<ActionResult<ApiResponse<IEnumerable<CategoryResponseDto>>>> GetCategories()
         {
             try
             {
-                var categories = await _categoryService.GetAllCategoriesAsync(isActive);
+                var categories = await _categoryService.GetAllCategoriesAsync();
                 return Ok(ApiResponse<IEnumerable<CategoryResponseDto>>.SuccessResponse(categories, "Categories retrieved successfully"));
             }
             catch (Exception ex)
@@ -43,9 +37,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Get category by ID (Public)
-        /// </summary>
         [HttpGet("{id}")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<CategoryResponseDto>), StatusCodes.Status200OK)]
@@ -67,11 +58,8 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Create a new category (Staff/Admin)
-        /// </summary>
         [HttpPost]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<CategoryResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<CategoryResponseDto>>> CreateCategory([FromBody] CreateCategoryRequestDto request)
@@ -105,11 +93,42 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Update category (Staff/Admin)
-        /// </summary>
+        [HttpPost("bulk")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(ApiResponse<IEnumerable<CategoryResponseDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<ApiResponse<IEnumerable<CategoryResponseDto>>>> BulkCreateCategories([FromBody] List<BulkCreateCategoryItemDto> items)
+        {
+            try
+            {
+                if (items == null || items.Count == 0)
+                    return BadRequest(ApiResponse<IEnumerable<CategoryResponseDto>>.ErrorResponse("Request body must contain at least one category"));
+
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    return BadRequest(ApiResponse<IEnumerable<CategoryResponseDto>>.ErrorResponse("Validation failed", errors));
+                }
+
+                var categories = await _categoryService.BulkCreateCategoriesAsync(items);
+                return Ok(ApiResponse<IEnumerable<CategoryResponseDto>>.SuccessResponse(categories, "Categories created successfully"));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<IEnumerable<CategoryResponseDto>>.ErrorResponse(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error bulk creating categories");
+                return StatusCode(500, ApiResponse<IEnumerable<CategoryResponseDto>>.ErrorResponse("An error occurred while creating categories"));
+            }
+        }
+
         [HttpPut("{id}")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<CategoryResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ApiResponse<CategoryResponseDto>>> UpdateCategory(Guid id, [FromBody] UpdateCategoryRequestDto request)
@@ -142,11 +161,8 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Delete category (Staff/Admin) - Soft delete
-        /// </summary>
         [HttpDelete("{id}")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ApiResponse<object>>> DeleteCategory(Guid id)
@@ -166,28 +182,5 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Toggle category active status (Staff/Admin)
-        /// </summary>
-        [HttpPost("{id}/toggle-active")]
-        [Authorize(Policy = "StaffOrAdmin")]
-        [ProducesResponseType(typeof(ApiResponse<CategoryResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<ApiResponse<CategoryResponseDto>>> ToggleActive(Guid id)
-        {
-            try
-            {
-                var category = await _categoryService.ToggleActiveAsync(id);
-                if (category == null)
-                    return NotFound(ApiResponse<CategoryResponseDto>.ErrorResponse("Category not found"));
-
-                return Ok(ApiResponse<CategoryResponseDto>.SuccessResponse(category, "Category status toggled successfully"));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error toggling category status {CategoryId}", id);
-                return StatusCode(500, ApiResponse<CategoryResponseDto>.ErrorResponse("An error occurred while toggling category status"));
-            }
-        }
     }
 }

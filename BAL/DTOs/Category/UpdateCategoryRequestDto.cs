@@ -12,6 +12,13 @@ namespace BAL.DTOs.Category
 
         public string? Description { get; set; }
 
-        public bool? IsActive { get; set; }
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        public int? DisplayOrder { get; set; }
+
+        public bool? IsHot { get; set; }
+
+        public Guid? ParentId { get; set; }
     }
 }

@@ -153,11 +153,15 @@ namespace DAL.Data
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // Category configuration
+            // Category configuration - self-referencing for parent/child
             modelBuilder.Entity<Category>(entity =>
             {
                 entity.HasIndex(c => c.Name);
-                entity.HasIndex(c => c.IsActive);
+                entity.HasIndex(c => c.ParentId);
+                entity.HasOne(c => c.Parent)
+                      .WithMany(c => c.Children)
+                      .HasForeignKey(c => c.ParentId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Brand configuration

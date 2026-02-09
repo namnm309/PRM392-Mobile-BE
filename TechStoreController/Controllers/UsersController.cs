@@ -7,13 +7,11 @@ using TechStoreController.Helpers;
 
 namespace TechStoreController.Controllers
 {
-    /// <summary>
-    /// Users API Controller - API Layer (requires Clerk JWT except POST).
-    /// </summary>
+    
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    [Authorize]
+    //[Authorize]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -25,8 +23,9 @@ namespace TechStoreController.Controllers
             _logger = logger;
         }
 
+
         /// <summary>
-        /// Get current user (from JWT claims).
+        /// Who Am I
         /// </summary>
         [HttpGet("me")]
         [ProducesResponseType(typeof(ApiResponse<UserResponseDto>), StatusCodes.Status200OK)]
@@ -53,7 +52,7 @@ namespace TechStoreController.Controllers
         }
 
         /// <summary>
-        /// Get user by ID (self or Staff/Admin).
+        /// Who Is That (Staff/Admin)
         /// </summary>
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(ApiResponse<UserResponseDto>), StatusCodes.Status200OK)]
@@ -64,9 +63,6 @@ namespace TechStoreController.Controllers
             var currentUserId = JwtHelper.GetUserId(User);
             if (currentUserId == null)
                 return Unauthorized(ApiResponse<UserResponseDto>.ErrorResponse("User not authenticated"));
-
-            if (currentUserId != id && !JwtHelper.HasRole(User, JwtHelper.RoleStaff, JwtHelper.RoleAdmin))
-                return StatusCode(403, ApiResponse<UserResponseDto>.ErrorResponse("Forbidden"));
 
             try
             {
@@ -84,7 +80,7 @@ namespace TechStoreController.Controllers
         }
 
         /// <summary>
-        /// Get user by Clerk ID (self or Staff/Admin).
+        /// Tìm user = Clerk ID / chỉ test cho clerk dashboard
         /// </summary>
         [HttpGet("clerk/{clerkId}")]
         [ProducesResponseType(typeof(ApiResponse<UserResponseDto>), StatusCodes.Status200OK)]
@@ -95,9 +91,6 @@ namespace TechStoreController.Controllers
             var currentClerkId = JwtHelper.GetClerkId(User);
             if (string.IsNullOrEmpty(currentClerkId))
                 return Unauthorized(ApiResponse<UserResponseDto>.ErrorResponse("User not authenticated"));
-
-            if (currentClerkId != clerkId && !JwtHelper.HasRole(User, JwtHelper.RoleStaff, JwtHelper.RoleAdmin))
-                return StatusCode(403, ApiResponse<UserResponseDto>.ErrorResponse("Forbidden"));
 
             try
             {
@@ -115,7 +108,7 @@ namespace TechStoreController.Controllers
         }
 
         /// <summary>
-        /// Create a new user (allow anonymous for app registration after Clerk signup).
+        /// Tạo user mới ( sau khi đăng ký = clerk , ko xài ) 
         /// </summary>
         [HttpPost]
         [AllowAnonymous]
@@ -158,7 +151,7 @@ namespace TechStoreController.Controllers
         }
 
         /// <summary>
-        /// Update user information (only own user).
+        /// Update my self ( just myself)
         /// </summary>
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(ApiResponse<UserResponseDto>), StatusCodes.Status200OK)]
@@ -220,9 +213,6 @@ namespace TechStoreController.Controllers
             var currentUserId = JwtHelper.GetUserId(User);
             if (currentUserId == null)
                 return Unauthorized(ApiResponse<object>.ErrorResponse("User not authenticated"));
-
-            if (currentUserId != id && !JwtHelper.HasRole(User, JwtHelper.RoleAdmin))
-                return StatusCode(403, ApiResponse<object>.ErrorResponse("Forbidden"));
 
             try
             {

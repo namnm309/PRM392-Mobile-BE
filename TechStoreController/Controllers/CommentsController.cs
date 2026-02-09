@@ -7,9 +7,6 @@ using TechStoreController.Helpers;
 
 namespace TechStoreController.Controllers
 {
-    /// <summary>
-    /// Comments API Controller
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
@@ -24,9 +21,6 @@ namespace TechStoreController.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Get comments by product ID (Public - Guest can view)
-        /// </summary>
         [HttpGet("product/{productId}")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<CommentResponseDto>>), StatusCodes.Status200OK)]
@@ -44,11 +38,8 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Create a comment (Customer only - must have purchased product)
-        /// </summary>
         [HttpPost]
-        [Authorize(Policy = "CustomerOnly")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<CommentResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<CommentResponseDto>>> CreateComment([FromBody] CreateCommentRequestDto request)
@@ -90,11 +81,8 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Reply to a comment (Staff/Admin only - one reply per comment)
-        /// </summary>
         [HttpPost("{commentId}/reply")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<CommentReplyResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<CommentReplyResponseDto>>> ReplyToComment(Guid commentId, [FromBody] CreateCommentReplyRequestDto request)

@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Threading.Tasks;
 using BAL.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -9,7 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 namespace TechStoreController.Services
 {
     /// <summary>
-    /// Configures JwtBearerOptions to validate Clerk JWT (JWKS) and map sub (ClerkId) to userId and role.
+    /// Verify cái JWT của clerk 
     /// </summary>
     public class ClerkJwtBearerPostConfigure : IPostConfigureOptions<JwtBearerOptions>
     {
@@ -31,7 +31,7 @@ namespace TechStoreController.Services
                 ClockSkew = TimeSpan.Zero,
                 IssuerSigningKeyResolver = (token, securityToken, kid, parameters) =>
                 {
-                    var jwksProvider = _serviceProvider.GetRequiredService<IClerkJwksProvider>();
+                    var jwksProvider = _serviceProvider.GetRequiredService<IClerkJwksProvider>();//verify cái token mà client cung cấp từ header
                     return jwksProvider.GetSigningKeys();
                 },
                 RequireSignedTokens = true,

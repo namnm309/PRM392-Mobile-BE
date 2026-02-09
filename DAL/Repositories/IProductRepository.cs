@@ -7,6 +7,7 @@ namespace DAL.Repositories
     /// </summary>
     public interface IProductRepository : IRepository<Product>
     {
+        Task<Dictionary<Guid, int>> GetProductCountByCategoryIdsAsync(IEnumerable<Guid> categoryIds);
         Task<Product?> GetByIdWithTrackingAsync(Guid id);
         Task<Product?> GetByIdWithDetailsAsync(Guid id);
         Task<IEnumerable<Product>> GetActiveProductsAsync();

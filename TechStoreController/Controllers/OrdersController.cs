@@ -7,13 +7,10 @@ using TechStoreController.Helpers;
 
 namespace TechStoreController.Controllers
 {
-    /// <summary>
-    /// Orders API Controller
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    [Authorize]
+    [AllowAnonymous]
     public class OrdersController : ControllerBase
     {
         private readonly IOrderService _orderService;
@@ -25,9 +22,6 @@ namespace TechStoreController.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Get orders - User's orders (Customer) or all orders (Staff/Admin) with pagination
-        /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResponse<OrderResponseDto>>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<PagedResponse<OrderResponseDto>>>> GetOrders(
@@ -71,9 +65,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Get order by ID with full details
-        /// </summary>
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(ApiResponse<OrderResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -105,11 +96,8 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Search orders by order ID (Staff/Admin only) with pagination
-        /// </summary>
         [HttpGet("search/by-orderid")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<PagedResponse<OrderResponseDto>>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<PagedResponse<OrderResponseDto>>>> SearchOrdersByOrderId(
             [FromQuery] string orderIdSearch,
@@ -133,11 +121,8 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Search orders by user ID (Staff/Admin only) with pagination
-        /// </summary>
         [HttpGet("search/by-user/{userId}")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<PagedResponse<OrderResponseDto>>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<PagedResponse<OrderResponseDto>>>> SearchOrdersByUserId(
             Guid userId,
@@ -156,11 +141,8 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Create a new order (Customer)
-        /// </summary>
         [HttpPost]
-        [Authorize(Policy = "CustomerOnly")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<OrderResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<OrderResponseDto>>> CreateOrder([FromBody] CreateOrderRequestDto request)
@@ -198,11 +180,8 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Update order (Staff/Admin)
-        /// </summary>
         [HttpPut("{id}")]
-        [Authorize(Policy = "StaffOrAdmin")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<OrderResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ApiResponse<OrderResponseDto>>> UpdateOrder(Guid id, [FromBody] UpdateOrderRequestDto request)
@@ -235,9 +214,6 @@ namespace TechStoreController.Controllers
             }
         }
 
-        /// <summary>
-        /// Cancel order - User can cancel Pending/Processing orders, Staff/Admin can cancel any order with reason
-        /// </summary>
         [HttpPost("{id}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
