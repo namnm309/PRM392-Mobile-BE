@@ -13,6 +13,30 @@ namespace DAL.Repositories
         {
         }
 
+        public async Task<IEnumerable<Voucher>> GetAllWithFiltersAsync(string? code = null, string? name = null, bool? isActive = null)
+        {
+            var query = _dbSet.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(code))
+            {
+                var codeLower = code.Trim().ToLower();
+                query = query.Where(v => v.Code.ToLower().Contains(codeLower));
+            }
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                var nameLower = name.Trim().ToLower();
+                query = query.Where(v => v.Name.ToLower().Contains(nameLower));
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(v => v.IsActive == isActive.Value);
+            }
+
+            return await query.OrderByDescending(v => v.CreatedAt).ToListAsync();
+        }
+
         public async Task<Voucher?> GetByCodeAsync(string code)
         {
             return await _dbSet
