@@ -19,6 +19,11 @@ namespace DAL.Models
         public string Code { get; set; } = string.Empty;
 
         [Required]
+        [Column("name")]
+        [MaxLength(200)]
+        public string Name { get; set; } = string.Empty;
+
+        [Required]
         [Column("discount_type")]
         [MaxLength(20)]
         public string DiscountType { get; set; } = "Percent"; // Percent or Fixed
@@ -38,6 +43,9 @@ namespace DAL.Models
         [Required]
         [Column("min_order_value", TypeName = "decimal(18,2)")]
         public decimal MinOrderValue { get; set; } = 0;
+
+        [Column("max_discount_value", TypeName = "decimal(18,2)")]
+        public decimal? MaxDiscountValue { get; set; }
 
         [Required]
         [Column("total_usage_limit")]

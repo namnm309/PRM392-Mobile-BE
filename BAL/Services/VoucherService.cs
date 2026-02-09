@@ -26,6 +26,42 @@ namespace BAL.Services
             _productRepository = productRepository;
         }
 
+        public async Task<IEnumerable<VoucherResponseDto>> GetAllVouchersAsync(string? code = null, string? name = null, bool? isActive = null)
+        {
+            var vouchers = await _voucherRepository.GetAllWithFiltersAsync(code, name, isActive);
+            var result = new List<VoucherResponseDto>();
+
+            foreach (var voucher in vouchers)
+            {
+                var usageCount = await _voucherRepository.GetUsageCountAsync(voucher.Id);
+                var now = DateTime.UtcNow;
+                var isValid = voucher.IsActive
+                            && voucher.StartTime <= now
+                            && voucher.EndTime >= now
+                            && (voucher.TotalUsageLimit == 0 || usageCount < voucher.TotalUsageLimit);
+
+                result.Add(MapToDto(voucher, isValid, usageCount));
+            }
+
+            return result;
+        }
+
+        public async Task<VoucherResponseDto?> GetVoucherByIdAsync(Guid id)
+        {
+            var voucher = await _voucherRepository.GetByIdAsync(id);
+            if (voucher == null)
+                return null;
+
+            var usageCount = await _voucherRepository.GetUsageCountAsync(voucher.Id);
+            var now = DateTime.UtcNow;
+            var isValid = voucher.IsActive
+                        && voucher.StartTime <= now
+                        && voucher.EndTime >= now
+                        && (voucher.TotalUsageLimit == 0 || usageCount < voucher.TotalUsageLimit);
+
+            return MapToDto(voucher, isValid, usageCount);
+        }
+
         public async Task<VoucherResponseDto?> GetVoucherByCodeAsync(string code)
         {
             var voucher = await _voucherRepository.GetByCodeAsync(code);
@@ -34,25 +70,169 @@ namespace BAL.Services
 
             var usageCount = await _voucherRepository.GetUsageCountAsync(voucher.Id);
             var now = DateTime.UtcNow;
-            var isValid = voucher.IsActive 
-                        && voucher.StartTime <= now 
+            var isValid = voucher.IsActive
+                        && voucher.StartTime <= now
                         && voucher.EndTime >= now
                         && (voucher.TotalUsageLimit == 0 || usageCount < voucher.TotalUsageLimit);
 
+            return MapToDto(voucher, isValid, usageCount);
+        }
+
+        public async Task<VoucherResponseDto> CreateVoucherAsync(CreateVoucherRequestDto request)
+        {
+            // Normalize DiscountType: Amount -> Fixed
+            var discountType = NormalizeDiscountType(request.DiscountType);
+
+            // Code unique
+            var existing = await _voucherRepository.GetByCodeAsync(request.Code.Trim());
+            if (existing != null)
+                throw new InvalidOperationException($"Voucher with code '{request.Code}' already exists");
+
+            // EndTime > StartTime
+            if (request.EndTime <= request.StartTime)
+                throw new ArgumentException("End date must be after start date");
+
+            // Value > 0 (already validated by DTO Range)
+            // MaxDiscountValue: when Percent, optional; when Fixed/Amount, ignore
+
+            var voucher = new Voucher
+            {
+                Id = Guid.NewGuid(),
+                Code = request.Code.Trim(),
+                Name = request.Name.Trim(),
+                DiscountType = discountType,
+                Value = request.Value,
+                MinOrderValue = request.MinOrderValue,
+                MaxDiscountValue = discountType == "Percent" ? request.MaxDiscountValue : null,
+                StartTime = request.StartTime,
+                EndTime = request.EndTime,
+                TotalUsageLimit = 0,
+                PerUserLimit = 1,
+                IsActive = request.IsActive,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            var created = await _voucherRepository.AddAsync(voucher);
+            return MapToDto(created, false, 0);
+        }
+
+        public async Task<VoucherResponseDto?> UpdateVoucherAsync(Guid id, UpdateVoucherRequestDto request)
+        {
+            var voucher = await _voucherRepository.GetByIdAsync(id);
+            if (voucher == null)
+                return null;
+
+            if (request.Code != null)
+            {
+                var trimmedCode = request.Code.Trim();
+                if (trimmedCode != voucher.Code)
+                {
+                    var existing = await _voucherRepository.GetByCodeAsync(trimmedCode);
+                    if (existing != null)
+                        throw new InvalidOperationException($"Voucher with code '{trimmedCode}' already exists");
+                    voucher.Code = trimmedCode;
+                }
+            }
+
+            if (request.Name != null)
+                voucher.Name = request.Name.Trim();
+
+            if (request.DiscountType != null)
+            {
+                voucher.DiscountType = NormalizeDiscountType(request.DiscountType);
+                voucher.MaxDiscountValue = voucher.DiscountType == "Percent" ? request.MaxDiscountValue : null;
+            }
+            else if (request.MaxDiscountValue.HasValue && voucher.DiscountType == "Percent")
+            {
+                voucher.MaxDiscountValue = request.MaxDiscountValue;
+            }
+
+            if (request.Value.HasValue)
+                voucher.Value = request.Value.Value;
+
+            if (request.MinOrderValue.HasValue)
+                voucher.MinOrderValue = request.MinOrderValue.Value;
+
+            if (request.StartTime.HasValue)
+                voucher.StartTime = request.StartTime.Value;
+
+            if (request.EndTime.HasValue)
+                voucher.EndTime = request.EndTime.Value;
+
+            if (voucher.EndTime <= voucher.StartTime)
+                throw new ArgumentException("End date must be after start date");
+
+            if (request.IsActive.HasValue)
+                voucher.IsActive = request.IsActive.Value;
+
+            voucher.UpdatedAt = DateTime.UtcNow;
+            var updated = await _voucherRepository.UpdateAsync(voucher);
+
+            var usageCount = await _voucherRepository.GetUsageCountAsync(updated.Id);
+            var now = DateTime.UtcNow;
+            var isValid = updated.IsActive && updated.StartTime <= now && updated.EndTime >= now
+                        && (updated.TotalUsageLimit == 0 || usageCount < updated.TotalUsageLimit);
+
+            return MapToDto(updated, isValid, usageCount);
+        }
+
+        public async Task<bool> DeleteVoucherAsync(Guid id)
+        {
+            var voucher = await _voucherRepository.GetByIdAsync(id);
+            if (voucher == null)
+                return false;
+
+            var usageCount = await _voucherRepository.GetUsageCountAsync(id);
+            if (usageCount > 0)
+                throw new InvalidOperationException("Cannot delete voucher that has been used");
+
+            return await _voucherRepository.DeleteAsync(id);
+        }
+
+        public async Task<VoucherResponseDto?> ToggleActiveAsync(Guid id)
+        {
+            var voucher = await _voucherRepository.GetByIdAsync(id);
+            if (voucher == null)
+                return null;
+
+            voucher.IsActive = !voucher.IsActive;
+            voucher.UpdatedAt = DateTime.UtcNow;
+            var updated = await _voucherRepository.UpdateAsync(voucher);
+
+            var usageCount = await _voucherRepository.GetUsageCountAsync(updated.Id);
+            var now = DateTime.UtcNow;
+            var isValid = updated.IsActive && updated.StartTime <= now && updated.EndTime >= now
+                        && (updated.TotalUsageLimit == 0 || usageCount < updated.TotalUsageLimit);
+
+            return MapToDto(updated, isValid, usageCount);
+        }
+
+        private static string NormalizeDiscountType(string discountType)
+        {
+            return discountType.Trim().Equals("Amount", StringComparison.OrdinalIgnoreCase) ? "Fixed" : discountType.Trim();
+        }
+
+        private static VoucherResponseDto MapToDto(Voucher voucher, bool isValid, int currentUsage)
+        {
             return new VoucherResponseDto
             {
                 Id = voucher.Id,
                 Code = voucher.Code,
+                Name = voucher.Name,
                 DiscountType = voucher.DiscountType,
                 Value = voucher.Value,
                 StartTime = voucher.StartTime,
                 EndTime = voucher.EndTime,
                 MinOrderValue = voucher.MinOrderValue,
+                MaxDiscountValue = voucher.MaxDiscountValue,
                 TotalUsageLimit = voucher.TotalUsageLimit,
                 PerUserLimit = voucher.PerUserLimit,
                 IsActive = voucher.IsActive,
                 IsValid = isValid,
-                CurrentUsage = usageCount
+                CurrentUsage = currentUsage,
+                CreatedAt = voucher.CreatedAt,
+                UpdatedAt = voucher.UpdatedAt
             };
         }
 
@@ -166,13 +346,19 @@ namespace BAL.Services
                 };
             }
 
-            // Calculate discount
+            // Calculate discount (support Percent, Fixed, Amount)
+            var discountType = voucher.DiscountType.Equals("Amount", StringComparison.OrdinalIgnoreCase) ? "Fixed" : voucher.DiscountType;
+
             decimal discountAmount = 0;
-            if (voucher.DiscountType == "Percent")
+            if (discountType == "Percent")
             {
                 discountAmount = subtotalEligible * (voucher.Value / 100);
+                if (voucher.MaxDiscountValue.HasValue && voucher.MaxDiscountValue.Value > 0)
+                {
+                    discountAmount = Math.Min(discountAmount, voucher.MaxDiscountValue.Value);
+                }
             }
-            else if (voucher.DiscountType == "Fixed")
+            else if (discountType == "Fixed")
             {
                 discountAmount = Math.Min(voucher.Value, subtotalEligible);
             }
