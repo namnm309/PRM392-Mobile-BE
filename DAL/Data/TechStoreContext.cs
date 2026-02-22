@@ -35,7 +35,11 @@ namespace DAL.Data
         public DbSet<Comment> Comments { get; set; }
         public DbSet<CommentReply> CommentReplies { get; set; }
         public DbSet<Voucher> Vouchers { get; set; }
-        public DbSet<VoucherUsage> VoucherUsages { get; set; }    
+        public DbSet<VoucherUsage> VoucherUsages { get; set; }
+        public DbSet<WishlistItem> WishlistItems { get; set; }
+        public DbSet<MembershipTier> MembershipTiers { get; set; }
+        public DbSet<PointTransaction> PointTransactions { get; set; }
+        public DbSet<LinkedAccount> LinkedAccounts { get; set; }    
 
 
 
@@ -196,6 +200,54 @@ namespace DAL.Data
                 entity.HasOne(pi => pi.Product)
                       .WithMany(p => p.ProductImages)
                       .HasForeignKey(pi => pi.ProductId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // WishlistItem configuration
+            modelBuilder.Entity<WishlistItem>(entity =>
+            {
+                entity.HasIndex(w => new { w.UserId, w.ProductId }).IsUnique();
+                entity.HasIndex(w => w.UserId);
+                entity.HasOne(w => w.User)
+                      .WithMany()
+                      .HasForeignKey(w => w.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(w => w.Product)
+                      .WithMany()
+                      .HasForeignKey(w => w.ProductId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // MembershipTier configuration
+            modelBuilder.Entity<MembershipTier>(entity =>
+            {
+                entity.HasIndex(mt => mt.DisplayOrder);
+                entity.HasIndex(mt => mt.IsActive);
+            });
+
+            // PointTransaction configuration
+            modelBuilder.Entity<PointTransaction>(entity =>
+            {
+                entity.HasIndex(pt => pt.UserId);
+                entity.HasIndex(pt => pt.CreatedAt);
+                entity.HasOne(pt => pt.User)
+                      .WithMany()
+                      .HasForeignKey(pt => pt.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(pt => pt.Order)
+                      .WithMany()
+                      .HasForeignKey(pt => pt.OrderId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // LinkedAccount configuration
+            modelBuilder.Entity<LinkedAccount>(entity =>
+            {
+                entity.HasIndex(la => new { la.UserId, la.Provider }).IsUnique();
+                entity.HasIndex(la => new { la.Provider, la.ProviderUserId }).IsUnique();
+                entity.HasOne(la => la.User)
+                      .WithMany()
+                      .HasForeignKey(la => la.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
         }
