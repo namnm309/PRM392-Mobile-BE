@@ -74,6 +74,10 @@ namespace TechStoreController
             builder.Services.AddScoped<ICommentReplyRepository, CommentReplyRepository>();
             builder.Services.AddScoped<IVoucherRepository, VoucherRepository>();
             builder.Services.AddScoped<IVoucherUsageRepository, VoucherUsageRepository>();
+            builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
+            builder.Services.AddScoped<IMembershipTierRepository, MembershipTierRepository>();
+            builder.Services.AddScoped<IPointTransactionRepository, PointTransactionRepository>();
+            builder.Services.AddScoped<ILinkedAccountRepository, LinkedAccountRepository>();
 
             // ============================================
             // Application Layer (BAL) - Services
@@ -89,6 +93,9 @@ namespace TechStoreController
             builder.Services.AddScoped<ICommentService, CommentService>();
             builder.Services.AddScoped<IVoucherService, VoucherService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
+            builder.Services.AddScoped<IWishlistService, WishlistService>();
+            builder.Services.AddScoped<IMembershipService, MembershipService>();
+            builder.Services.AddScoped<ILinkedAccountService, LinkedAccountService>();
 
             // ============================================
             // API Layer - Swagger
