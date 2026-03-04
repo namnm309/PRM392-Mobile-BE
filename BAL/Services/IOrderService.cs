@@ -13,6 +13,7 @@ namespace BAL.Services
         Task<PagedResponse<OrderResponseDto>> SearchOrdersByOrderIdAsync(string orderIdSearch, int pageNumber, int pageSize);
         Task<PagedResponse<OrderResponseDto>> SearchOrdersByUserIdAsync(Guid userId, int pageNumber, int pageSize);
         Task<OrderResponseDto> CreateOrderAsync(Guid userId, CreateOrderRequestDto request);
+        Task<OrderResponseDto> CreateOrderFromCartAsync(Guid userId, Guid addressId, string paymentMethod, List<Guid>? cartItemIds = null, Guid? voucherId = null, string? notes = null);
         Task<OrderResponseDto?> UpdateOrderAsync(Guid id, UpdateOrderRequestDto request);
         Task<bool> CancelOrderByUserAsync(Guid orderId, Guid userId);
         Task<bool> CancelOrderByStaffAsync(Guid orderId, Guid staffId, string cancelReason);

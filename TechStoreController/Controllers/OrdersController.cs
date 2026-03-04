@@ -141,6 +141,52 @@ namespace TechStoreController.Controllers
             }
         }
 
+        [HttpPost("checkout")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(ApiResponse<OrderResponseDto>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<ApiResponse<OrderResponseDto>>> Checkout([FromBody] CheckoutRequestDto request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    return BadRequest(ApiResponse<OrderResponseDto>.ErrorResponse("Validation failed", errors));
+                }
+
+                var userId = JwtHelper.GetUserId(User);
+                if (userId == null)
+                    return Unauthorized(ApiResponse<OrderResponseDto>.ErrorResponse("User not authenticated"));
+
+                var order = await _orderService.CreateOrderFromCartAsync(
+                    userId.Value, 
+                    request.AddressId, 
+                    request.PaymentMethod, 
+                    request.CartItemIds, 
+                    request.VoucherId, 
+                    request.Notes);
+                
+                return CreatedAtAction(
+                    nameof(GetOrder),
+                    new { id = order.Id },
+                    ApiResponse<OrderResponseDto>.SuccessResponse(order, "Order created successfully from cart")
+                );
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<OrderResponseDto>.ErrorResponse(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during checkout");
+                return StatusCode(500, ApiResponse<OrderResponseDto>.ErrorResponse("An error occurred during checkout"));
+            }
+        }
+
         [HttpPost]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<OrderResponseDto>), StatusCodes.Status201Created)]

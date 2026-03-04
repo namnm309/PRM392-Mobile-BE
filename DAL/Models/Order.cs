@@ -63,6 +63,11 @@ namespace DAL.Models
         [Column("cancelled_by")]
         public Guid? CancelledBy { get; set; }
 
+        [Required]
+        [Column("payment_method")]
+        [MaxLength(50)]
+        public string PaymentMethod { get; set; } = "COD"; // COD (Cash on Delivery), Online
+
         // Navigation Properties
         [ForeignKey("UserId")]
         public virtual User User { get; set; } = null!;
