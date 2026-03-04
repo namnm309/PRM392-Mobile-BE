@@ -75,6 +75,86 @@ namespace BAL.Services
             return await GetOrdersByUserIdAsync(userId, pageNumber, pageSize);
         }
 
+        public async Task<OrderResponseDto> CreateOrderFromCartAsync(Guid userId, Guid addressId, string paymentMethod, List<Guid>? cartItemIds = null, Guid? voucherId = null, string? notes = null)
+        {
+            // Get cart items - if cartItemIds is provided and not empty, only get those items
+            IEnumerable<CartItem> cartItems;
+            if (cartItemIds != null && cartItemIds.Count > 0)
+            {
+                // Get only selected cart items
+                var allCartItems = await _cartItemRepository.GetByUserIdAsync(userId);
+                cartItems = allCartItems.Where(item => cartItemIds.Contains(item.Id)).ToList();
+                
+                // Validate: ensure all requested cart items exist
+                if (cartItems.Count() != cartItemIds.Count)
+                {
+                    var foundIds = cartItems.Select(item => item.Id).ToList();
+                    var missingIds = cartItemIds.Except(foundIds).ToList();
+                    throw new InvalidOperationException($"Some cart items not found: {string.Join(", ", missingIds)}");
+                }
+            }
+            else
+            {
+                // Get all cart items if no specific items provided
+                cartItems = await _cartItemRepository.GetByUserIdAsync(userId);
+            }
+
+            if (cartItems == null || !cartItems.Any())
+            {
+                throw new InvalidOperationException("Cart is empty");
+            }
+
+            // Validate cart
+            foreach (var item in cartItems)
+            {
+                var product = await _productRepository.GetByIdAsync(item.ProductId);
+                if (product == null)
+                {
+                    throw new InvalidOperationException($"Product {item.ProductId} not found");
+                }
+                if (!product.IsActive)
+                {
+                    throw new InvalidOperationException($"Product {product.Name} is not active");
+                }
+                if (product.Stock < item.Quantity)
+                {
+                    throw new InvalidOperationException($"Insufficient stock for product {product.Name}. Available: {product.Stock}");
+                }
+            }
+
+            // Convert cart items to order items
+            var orderItems = cartItems.Select(item => new CreateOrderItemRequestDto
+            {
+                ProductId = item.ProductId,
+                Quantity = item.Quantity
+            }).ToList();
+
+            // Create order request
+            var createOrderRequest = new CreateOrderRequestDto
+            {
+                AddressId = addressId,
+                VoucherId = voucherId,
+                Notes = notes,
+                PaymentMethod = paymentMethod,
+                OrderItems = orderItems
+            };
+
+            // Create order
+            var order = await CreateOrderAsync(userId, createOrderRequest);
+
+            // Remove only the cart items that were checked out (not all items)
+            // Important: Only remove the specific items that were included in the order
+            var cartItemIdsToRemove = cartItems.Select(item => item.Id).ToList();
+            
+            // Double-check: ensure we only delete the items that were actually checked out
+            if (cartItemIdsToRemove.Any())
+            {
+                await _cartItemRepository.DeleteCartItemsByIdsAsync(userId, cartItemIdsToRemove);
+            }
+
+            return order;
+        }
+
         public async Task<OrderResponseDto> CreateOrderAsync(Guid userId, CreateOrderRequestDto request)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -154,6 +234,7 @@ namespace BAL.Services
                     VoucherId = voucherId,
                     TotalAmount = totalAmount,
                     Notes = request.Notes,
+                    PaymentMethod = request.PaymentMethod ?? "COD",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -329,6 +410,7 @@ namespace BAL.Services
                 CreatedAt = order.CreatedAt,
                 UpdatedAt = order.UpdatedAt,
                 DeliveredAt = order.DeliveredAt,
+                PaymentMethod = order.PaymentMethod,
                 OrderItems = order.OrderItems?.Select(oi => new OrderItemResponseDto
                 {
                     Id = oi.Id,
