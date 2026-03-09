@@ -96,6 +96,7 @@ namespace TechStoreController
             builder.Services.AddScoped<IWishlistService, WishlistService>();
             builder.Services.AddScoped<IMembershipService, MembershipService>();
             builder.Services.AddScoped<ILinkedAccountService, LinkedAccountService>();
+            builder.Services.AddScoped<IVnPayService, VnPayService>();
 
             // ============================================
             // API Layer - Swagger

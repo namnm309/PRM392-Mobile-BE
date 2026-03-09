@@ -26,6 +26,9 @@ namespace BAL.DTOs.Order
         public DateTime UpdatedAt { get; set; }
         public DateTime? DeliveredAt { get; set; }
         public string PaymentMethod { get; set; } = "COD";
+        public string PaymentStatus { get; set; } = "Pending";
+        public string? VnPayTransactionNo { get; set; }
+        public DateTime? PaymentDate { get; set; }
         public List<OrderItemResponseDto> OrderItems { get; set; } = new();
     }
 }

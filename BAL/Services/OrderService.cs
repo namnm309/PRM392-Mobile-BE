@@ -223,6 +223,7 @@ namespace BAL.Services
 
                 var totalAmount = subtotal - discountAmount;
 
+                var paymentMethod = request.PaymentMethod ?? "COD";
                 var order = new Order
                 {
                     Id = Guid.NewGuid(),
@@ -234,7 +235,8 @@ namespace BAL.Services
                     VoucherId = voucherId,
                     TotalAmount = totalAmount,
                     Notes = request.Notes,
-                    PaymentMethod = request.PaymentMethod ?? "COD",
+                    PaymentMethod = paymentMethod,
+                    PaymentStatus = paymentMethod == "Online" ? "Pending" : "COD",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -411,6 +413,9 @@ namespace BAL.Services
                 UpdatedAt = order.UpdatedAt,
                 DeliveredAt = order.DeliveredAt,
                 PaymentMethod = order.PaymentMethod,
+                PaymentStatus = order.PaymentStatus,
+                VnPayTransactionNo = order.VnPayTransactionNo,
+                PaymentDate = order.PaymentDate,
                 OrderItems = order.OrderItems?.Select(oi => new OrderItemResponseDto
                 {
                     Id = oi.Id,

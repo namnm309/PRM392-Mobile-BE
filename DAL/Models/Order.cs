@@ -68,6 +68,18 @@ namespace DAL.Models
         [MaxLength(50)]
         public string PaymentMethod { get; set; } = "COD"; // COD (Cash on Delivery), Online
 
+        [Required]
+        [Column("payment_status")]
+        [MaxLength(50)]
+        public string PaymentStatus { get; set; } = "Pending"; // Pending, Paid, Failed
+
+        [Column("vnpay_transaction_no")]
+        [MaxLength(100)]
+        public string? VnPayTransactionNo { get; set; }
+
+        [Column("payment_date")]
+        public DateTime? PaymentDate { get; set; }
+
         // Navigation Properties
         [ForeignKey("UserId")]
         public virtual User User { get; set; } = null!;
