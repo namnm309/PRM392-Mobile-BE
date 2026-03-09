@@ -21,6 +21,10 @@ namespace BAL.DTOs.Order
 
         [Required]
         public List<CreateOrderItemRequestDto> OrderItems { get; set; } = new();
+
+        public decimal ShippingFee { get; set; } = 0;
+
+        public int? ShippingServiceId { get; set; }
     }
 
     /// <summary>

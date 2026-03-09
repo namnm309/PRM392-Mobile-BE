@@ -29,6 +29,10 @@ namespace BAL.DTOs.Order
         public string PaymentStatus { get; set; } = "Pending";
         public string? VnPayTransactionNo { get; set; }
         public DateTime? PaymentDate { get; set; }
+        public decimal ShippingFee { get; set; }
+        public string? GhnOrderCode { get; set; }
+        public DateTime? ExpectedDeliveryTime { get; set; }
+        public int? ShippingServiceId { get; set; }
         public List<OrderItemResponseDto> OrderItems { get; set; } = new();
     }
 }

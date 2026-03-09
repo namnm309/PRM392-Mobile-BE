@@ -168,7 +168,9 @@ namespace TechStoreController.Controllers
                     request.PaymentMethod, 
                     request.CartItemIds, 
                     request.VoucherId, 
-                    request.Notes);
+                    request.Notes,
+                    request.ShippingFee,
+                    request.ShippingServiceId);
                 
                 return CreatedAtAction(
                     nameof(GetOrder),

@@ -23,5 +23,15 @@ namespace BAL.DTOs.Order
         /// List of cart item IDs to checkout. If empty or null, checkout all items in cart.
         /// </summary>
         public List<Guid>? CartItemIds { get; set; }
+
+        /// <summary>
+        /// Shipping fee calculated from GHN API
+        /// </summary>
+        public decimal ShippingFee { get; set; } = 0;
+
+        /// <summary>
+        /// GHN service ID used for shipping
+        /// </summary>
+        public int? ShippingServiceId { get; set; }
     }
 }

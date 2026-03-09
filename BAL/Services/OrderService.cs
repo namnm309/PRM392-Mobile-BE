@@ -75,7 +75,7 @@ namespace BAL.Services
             return await GetOrdersByUserIdAsync(userId, pageNumber, pageSize);
         }
 
-        public async Task<OrderResponseDto> CreateOrderFromCartAsync(Guid userId, Guid addressId, string paymentMethod, List<Guid>? cartItemIds = null, Guid? voucherId = null, string? notes = null)
+        public async Task<OrderResponseDto> CreateOrderFromCartAsync(Guid userId, Guid addressId, string paymentMethod, List<Guid>? cartItemIds = null, Guid? voucherId = null, string? notes = null, decimal shippingFee = 0, int? shippingServiceId = null)
         {
             // Get cart items - if cartItemIds is provided and not empty, only get those items
             IEnumerable<CartItem> cartItems;
@@ -129,17 +129,17 @@ namespace BAL.Services
                 Quantity = item.Quantity
             }).ToList();
 
-            // Create order request
             var createOrderRequest = new CreateOrderRequestDto
             {
                 AddressId = addressId,
                 VoucherId = voucherId,
                 Notes = notes,
                 PaymentMethod = paymentMethod,
-                OrderItems = orderItems
+                OrderItems = orderItems,
+                ShippingFee = shippingFee,
+                ShippingServiceId = shippingServiceId
             };
 
-            // Create order
             var order = await CreateOrderAsync(userId, createOrderRequest);
 
             // Remove only the cart items that were checked out (not all items)
@@ -221,7 +221,8 @@ namespace BAL.Services
                     voucherId = request.VoucherId.Value;
                 }
 
-                var totalAmount = subtotal - discountAmount;
+                var shippingFee = request.ShippingFee;
+                var totalAmount = subtotal - discountAmount + shippingFee;
 
                 var paymentMethod = request.PaymentMethod ?? "COD";
                 var order = new Order
@@ -234,6 +235,8 @@ namespace BAL.Services
                     DiscountAmount = discountAmount,
                     VoucherId = voucherId,
                     TotalAmount = totalAmount,
+                    ShippingFee = shippingFee,
+                    ShippingServiceId = request.ShippingServiceId,
                     Notes = request.Notes,
                     PaymentMethod = paymentMethod,
                     PaymentStatus = paymentMethod == "Online" ? "Pending" : "COD",
@@ -384,6 +387,12 @@ namespace BAL.Services
                     District = order.Address.District,
                     City = order.Address.City,
                     IsPrimary = order.Address.IsPrimary,
+                    ProvinceId = order.Address.ProvinceId,
+                    DistrictId = order.Address.DistrictId,
+                    WardCode = order.Address.WardCode,
+                    Latitude = order.Address.Latitude,
+                    Longitude = order.Address.Longitude,
+                    AddressNote = order.Address.AddressNote,
                     CreatedAt = order.Address.CreatedAt,
                     UpdatedAt = order.Address.UpdatedAt
                 } : null,
@@ -416,6 +425,10 @@ namespace BAL.Services
                 PaymentStatus = order.PaymentStatus,
                 VnPayTransactionNo = order.VnPayTransactionNo,
                 PaymentDate = order.PaymentDate,
+                ShippingFee = order.ShippingFee,
+                GhnOrderCode = order.GhnOrderCode,
+                ExpectedDeliveryTime = order.ExpectedDeliveryTime,
+                ShippingServiceId = order.ShippingServiceId,
                 OrderItems = order.OrderItems?.Select(oi => new OrderItemResponseDto
                 {
                     Id = oi.Id,

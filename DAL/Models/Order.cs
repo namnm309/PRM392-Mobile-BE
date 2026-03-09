@@ -80,6 +80,19 @@ namespace DAL.Models
         [Column("payment_date")]
         public DateTime? PaymentDate { get; set; }
 
+        [Column("shipping_fee", TypeName = "decimal(18,2)")]
+        public decimal ShippingFee { get; set; } = 0;
+
+        [Column("ghn_order_code")]
+        [MaxLength(50)]
+        public string? GhnOrderCode { get; set; }
+
+        [Column("expected_delivery_time")]
+        public DateTime? ExpectedDeliveryTime { get; set; }
+
+        [Column("shipping_service_id")]
+        public int? ShippingServiceId { get; set; }
+
         // Navigation Properties
         [ForeignKey("UserId")]
         public virtual User User { get; set; } = null!;

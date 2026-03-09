@@ -61,6 +61,12 @@ namespace BAL.Services
                     District = request.District,
                     City = request.City,
                     IsPrimary = request.IsPrimary,
+                    ProvinceId = request.ProvinceId,
+                    DistrictId = request.DistrictId,
+                    WardCode = request.WardCode,
+                    Latitude = request.Latitude,
+                    Longitude = request.Longitude,
+                    AddressNote = request.AddressNote,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -103,6 +109,24 @@ namespace BAL.Services
 
             if (request.City != null)
                 address.City = request.City;
+
+            if (request.ProvinceId.HasValue)
+                address.ProvinceId = request.ProvinceId;
+
+            if (request.DistrictId.HasValue)
+                address.DistrictId = request.DistrictId;
+
+            if (request.WardCode != null)
+                address.WardCode = request.WardCode;
+
+            if (request.Latitude.HasValue)
+                address.Latitude = request.Latitude;
+
+            if (request.Longitude.HasValue)
+                address.Longitude = request.Longitude;
+
+            if (request.AddressNote != null)
+                address.AddressNote = request.AddressNote;
 
             address.UpdatedAt = DateTime.UtcNow;
 
@@ -168,6 +192,12 @@ namespace BAL.Services
                 District = address.District,
                 City = address.City,
                 IsPrimary = address.IsPrimary,
+                ProvinceId = address.ProvinceId,
+                DistrictId = address.DistrictId,
+                WardCode = address.WardCode,
+                Latitude = address.Latitude,
+                Longitude = address.Longitude,
+                AddressNote = address.AddressNote,
                 CreatedAt = address.CreatedAt,
                 UpdatedAt = address.UpdatedAt
             };
