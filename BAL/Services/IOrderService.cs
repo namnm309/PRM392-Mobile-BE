@@ -17,5 +17,7 @@ namespace BAL.Services
         Task<OrderResponseDto?> UpdateOrderAsync(Guid id, UpdateOrderRequestDto request);
         Task<bool> CancelOrderByUserAsync(Guid orderId, Guid userId);
         Task<bool> CancelOrderByStaffAsync(Guid orderId, Guid staffId, string cancelReason);
+        Task<OrderResponseDto?> ConfirmOrderByAdminAsync(Guid orderId, Guid adminId, ConfirmOrderRequestDto? request = null);
+        Task<OrderResponseDto?> CreateShippingOrderAsync(Guid orderId, Guid adminId);
     }
 }

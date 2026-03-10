@@ -100,6 +100,11 @@ namespace TechStoreController
             builder.Services.AddScoped<IGhnService, GhnService>();
 
             // ============================================
+            // Background Services
+            // ============================================
+            builder.Services.AddHostedService<OrderExpiryScannerService>();
+
+            // ============================================
             // API Layer - Swagger
             // ============================================
             
@@ -186,7 +191,8 @@ namespace TechStoreController
             // Enable request buffering cho webhook endpoint - PHẢI ĐẶT TRƯỚC CÁC MIDDLEWARE KHÁC
             app.Use(async (context, next) =>
             {
-                if (context.Request.Path.StartsWithSegments("/api/webhook/clerk"))
+                if (context.Request.Path.StartsWithSegments("/api/webhook/clerk") ||
+                    context.Request.Path.StartsWithSegments("/api/webhook/ghn"))
                 {
                     // Enable buffering với buffer size lớn để đảm bảo có thể đọc body
                     context.Request.EnableBuffering(bufferLimit: 10485760); // 10MB

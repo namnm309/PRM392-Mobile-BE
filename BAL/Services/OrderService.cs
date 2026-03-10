@@ -7,6 +7,7 @@ using DAL.Data;
 using DAL.Models;
 using DAL.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace BAL.Services
 {
@@ -20,7 +21,9 @@ namespace BAL.Services
         private readonly IProductRepository _productRepository;
         private readonly IAddressRepository _addressRepository;
         private readonly ICartItemRepository _cartItemRepository;
+        private readonly IGhnService _ghnService;
         private readonly TechStoreContext _context;
+        private readonly ILogger<OrderService> _logger;
 
         public OrderService(
             IOrderRepository orderRepository,
@@ -28,14 +31,18 @@ namespace BAL.Services
             IProductRepository productRepository,
             IAddressRepository addressRepository,
             ICartItemRepository cartItemRepository,
-            TechStoreContext context)
+            IGhnService ghnService,
+            TechStoreContext context,
+            ILogger<OrderService> logger)
         {
             _orderRepository = orderRepository;
             _orderItemRepository = orderItemRepository;
             _productRepository = productRepository;
             _addressRepository = addressRepository;
             _cartItemRepository = cartItemRepository;
+            _ghnService = ghnService;
             _context = context;
+            _logger = logger;
         }
 
         public async Task<OrderResponseDto?> GetOrderByIdAsync(Guid id)
@@ -274,7 +281,7 @@ namespace BAL.Services
             if (request.Status != null)
             {
                 // Business rule: Validate status transition
-                var validStatuses = new[] { "Pending", "Processing", "Shipped", "Delivered", "SUCCESS", "Cancelled" };
+                var validStatuses = new[] { "Pending", "Processing", "Confirmed", "Shipping", "Delivered", "SUCCESS", "Cancelled" };
                 if (!validStatuses.Contains(request.Status))
                 {
                     throw new ArgumentException($"Invalid status. Must be one of: {string.Join(", ", validStatuses)}");
@@ -366,6 +373,188 @@ namespace BAL.Services
 
             await _orderRepository.UpdateAsync(order);
             return true;
+        }
+
+        public async Task<OrderResponseDto?> ConfirmOrderByAdminAsync(Guid orderId, Guid adminId, ConfirmOrderRequestDto? request = null)
+        {
+            var order = await _orderRepository.GetByIdAsync(orderId);
+            if (order == null)
+            {
+                return null;
+            }
+
+            // Business rule: Chỉ confirm order khi PaymentStatus = Paid hoặc COD
+            if (order.PaymentStatus != "Paid" && order.PaymentStatus != "COD")
+            {
+                throw new InvalidOperationException($"Cannot confirm order. Payment status must be 'Paid' or 'COD', current: {order.PaymentStatus}");
+            }
+
+            // Business rule: Chỉ confirm order khi status là Pending hoặc Processing
+            if (order.Status != "Pending" && order.Status != "Processing")
+            {
+                throw new InvalidOperationException($"Cannot confirm order. Current status: {order.Status}. Only Pending or Processing orders can be confirmed.");
+            }
+
+            // Business rule: Không confirm order đã bị hủy hoặc đã giao
+            if (order.Status == "Cancelled" || order.Status == "Delivered" || order.Status == "SUCCESS")
+            {
+                throw new InvalidOperationException($"Cannot confirm order with status: {order.Status}");
+            }
+
+            // Update status to Confirmed (KHÔNG tạo đơn GHN ở đây nữa)
+            order.Status = "Confirmed";
+            
+            // Add admin notes if provided
+            if (!string.IsNullOrEmpty(request?.Notes))
+            {
+                order.Notes = string.IsNullOrEmpty(order.Notes) 
+                    ? $"[Admin confirmed]: {request.Notes}" 
+                    : $"{order.Notes}\n[Admin confirmed]: {request.Notes}";
+            }
+
+            order.UpdatedAt = DateTime.UtcNow;
+            await _orderRepository.UpdateAsync(order);
+
+            _logger.LogInformation("Order confirmed by admin. OrderId: {OrderId}, AdminId: {AdminId}", orderId, adminId);
+
+            var orderWithDetails = await _orderRepository.GetByIdWithFullDetailsAsync(order.Id);
+            return MapToDto(orderWithDetails!);
+        }
+
+        public async Task<OrderResponseDto?> CreateShippingOrderAsync(Guid orderId, Guid adminId)
+        {
+            var order = await _orderRepository.GetByIdWithFullDetailsAsync(orderId);
+            if (order == null)
+            {
+                return null;
+            }
+
+            // Business rule: Chỉ tạo shipping khi order đã Confirmed
+            if (order.Status != "Confirmed")
+            {
+                throw new InvalidOperationException($"Cannot create shipping order. Order status must be 'Confirmed', current: {order.Status}");
+            }
+
+            // Business rule: Không tạo shipping nếu đã có GhnOrderCode
+            if (!string.IsNullOrEmpty(order.GhnOrderCode))
+            {
+                throw new InvalidOperationException($"Shipping order already created. GHN Order Code: {order.GhnOrderCode}");
+            }
+
+            // Tạo đơn GHN shipping order
+            try
+            {
+                if (order.Address == null)
+                {
+                    throw new InvalidOperationException("Order address is required to create GHN shipping order");
+                }
+
+                // Resolve GHN codes from address
+                var ghnCodes = await _ghnService.ResolveGhnCodesAsync(
+                    order.Address.City,
+                    order.Address.District,
+                    order.Address.Ward
+                );
+
+                if (ghnCodes == null || string.IsNullOrEmpty(ghnCodes.WardCode))
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot resolve GHN address codes. Please check address: {order.Address.City}/{order.Address.District}/{order.Address.Ward}");
+                }
+
+                // Theo curl mẫu: chỉ cần service_type_id (2 hàng nhẹ / 5 hàng nặng). Không bắt buộc service_id.
+                var selectedServiceTypeId = order.ShippingServiceId ?? 2;
+
+                // Prepare GHN order items
+                var ghnItems = order.OrderItems?.Select(oi => new GhnOrderItem
+                {
+                    Name = oi.Product?.Name ?? "Product",
+                    Code = oi.ProductId.ToString(),
+                    Quantity = oi.Quantity,
+                    Price = (int)oi.UnitPrice,
+                    Length = 12,
+                    Width = 12,
+                    Height = 12,
+                    Weight = 1200,
+                    Category = new GhnItemCategory { Level1 = "TechStore" }
+                }).ToList() ?? new List<GhnOrderItem>();
+
+                // Calculate total weight (estimate)
+                int totalWeight = ghnItems.Sum(i => i.Weight ?? 0);
+                if (totalWeight <= 0) totalWeight = 1200;
+
+                // Determine payment type: 1 = Người gửi trả, 2 = Người nhận trả (COD)
+                int paymentTypeId = order.PaymentMethod == "COD" ? 2 : 1;
+                int codAmount = order.PaymentMethod == "COD" ? (int)order.TotalAmount : 0;
+
+                var ghnRequest = new GhnCreateOrderRequest
+                {
+                    PaymentTypeId = paymentTypeId,
+                    Note = $"TechStore Order {order.Id.ToString().Substring(0, 8)}",
+                    RequiredNote = "KHONGCHOXEMHANG",
+                    // return_* phải là thông tin shop; để null để GHN service fallback về config
+                    ReturnPhone = null,
+                    ReturnAddress = null,
+                    ReturnDistrictId = null,
+                    ReturnWardCode = "",
+                    ToName = order.Address.RecipientName,
+                    ToPhone = order.Address.PhoneNumber,
+                    ToAddress = $"{order.Address.AddressLine1}, {order.Address.Ward}, {order.Address.District}, {order.Address.City}",
+                    ToWardName = order.Address.Ward,
+                    ToDistrictName = order.Address.District,
+                    ToProvinceName = order.Address.City,
+                    ToWardCode = ghnCodes.WardCode ?? "",
+                    ToDistrictId = ghnCodes.DistrictId,
+                    ClientOrderCode = order.Id.ToString(),
+                    CodAmount = codAmount,
+                    Content = $"TechStore Order #{order.Id.ToString().Substring(0, 8)}",
+                    Weight = totalWeight,
+                    Length = 12,
+                    Width = 12,
+                    Height = 12,
+                    CodFailedAmount = 2000,
+                    PickStationId = null,
+                    DeliverStationId = null,
+                    InsuranceValue = 10000000,
+                    ServiceId = 0,
+                    ServiceTypeId = selectedServiceTypeId,
+                    PickShift = new List<int> { 2 },
+                    Coupon = null,
+                    Items = ghnItems
+                };
+
+                var ghnResponse = await _ghnService.CreateShippingOrderAsync(ghnRequest);
+
+                // Save GHN order code and expected delivery time
+                order.GhnOrderCode = ghnResponse.OrderCode;
+                order.ExpectedDeliveryTime = ghnResponse.ExpectedDeliveryTime;
+
+                var ghnNote = $"[GHN Created {DateTime.UtcNow:yyyy-MM-dd HH:mm}]: Order Code = {ghnResponse.OrderCode}, ServiceType = {selectedServiceTypeId}";
+                if (ghnResponse.ExpectedDeliveryTime.HasValue)
+                {
+                    ghnNote += $", Expected Delivery = {ghnResponse.ExpectedDeliveryTime.Value:yyyy-MM-dd}";
+                }
+
+                order.Notes = string.IsNullOrEmpty(order.Notes)
+                    ? ghnNote
+                    : $"{order.Notes}\n{ghnNote}";
+
+                order.UpdatedAt = DateTime.UtcNow;
+                await _orderRepository.UpdateAsync(order);
+
+                _logger.LogInformation(
+                    "GHN shipping order created successfully. OrderId: {OrderId}, GhnOrderCode: {GhnOrderCode}, AdminId: {AdminId}",
+                    orderId, ghnResponse.OrderCode, adminId);
+
+                var orderWithDetails = await _orderRepository.GetByIdWithFullDetailsAsync(order.Id);
+                return MapToDto(orderWithDetails!);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create GHN shipping order for OrderId: {OrderId}", orderId);
+                // Không append lỗi vào order.Notes để tránh ô nhiễm note cho lần gọi sau
+                throw new InvalidOperationException($"Failed to create shipping order: {ex.Message}", ex);
+            }
         }
 
         private static OrderResponseDto MapToDto(Order order)

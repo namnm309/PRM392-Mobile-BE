@@ -24,7 +24,7 @@ namespace DAL.Models
         [Required]
         [Column("status")]
         [MaxLength(50)]
-        public string Status { get; set; } = "Pending"; // Pending, Processing, Shipped, Delivered, SUCCESS, Cancelled
+        public string Status { get; set; } = "Pending"; // Pending, Processing, Confirmed, Shipping, Delivered, SUCCESS, Cancelled
 
         [Required]
         [Column("subtotal", TypeName = "decimal(18,2)")]
@@ -71,7 +71,7 @@ namespace DAL.Models
         [Required]
         [Column("payment_status")]
         [MaxLength(50)]
-        public string PaymentStatus { get; set; } = "Pending"; // Pending, Paid, Failed
+        public string PaymentStatus { get; set; } = "Pending"; // Pending, Paid, Failed, ManualReview, Expired, COD
 
         [Column("vnpay_transaction_no")]
         [MaxLength(100)]
