@@ -15,6 +15,12 @@ namespace BAL.DTOs.Address
         public string District { get; set; } = string.Empty;
         public string City { get; set; } = string.Empty;
         public bool IsPrimary { get; set; }
+        public int? ProvinceId { get; set; }
+        public int? DistrictId { get; set; }
+        public string? WardCode { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+        public string? AddressNote { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

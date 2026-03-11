@@ -74,6 +74,10 @@ namespace TechStoreController
             builder.Services.AddScoped<ICommentReplyRepository, CommentReplyRepository>();
             builder.Services.AddScoped<IVoucherRepository, VoucherRepository>();
             builder.Services.AddScoped<IVoucherUsageRepository, VoucherUsageRepository>();
+            builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
+            builder.Services.AddScoped<IMembershipTierRepository, MembershipTierRepository>();
+            builder.Services.AddScoped<IPointTransactionRepository, PointTransactionRepository>();
+            builder.Services.AddScoped<ILinkedAccountRepository, LinkedAccountRepository>();
 
             // ============================================
             // Application Layer (BAL) - Services
@@ -89,6 +93,16 @@ namespace TechStoreController
             builder.Services.AddScoped<ICommentService, CommentService>();
             builder.Services.AddScoped<IVoucherService, VoucherService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
+            builder.Services.AddScoped<IWishlistService, WishlistService>();
+            builder.Services.AddScoped<IMembershipService, MembershipService>();
+            builder.Services.AddScoped<ILinkedAccountService, LinkedAccountService>();
+            builder.Services.AddScoped<IVnPayService, VnPayService>();
+            builder.Services.AddScoped<IGhnService, GhnService>();
+
+            // ============================================
+            // Background Services
+            // ============================================
+            builder.Services.AddHostedService<OrderExpiryScannerService>();
 
             // ============================================
             // API Layer - Swagger
@@ -177,7 +191,8 @@ namespace TechStoreController
             // Enable request buffering cho webhook endpoint - PHẢI ĐẶT TRƯỚC CÁC MIDDLEWARE KHÁC
             app.Use(async (context, next) =>
             {
-                if (context.Request.Path.StartsWithSegments("/api/webhook/clerk"))
+                if (context.Request.Path.StartsWithSegments("/api/webhook/clerk") ||
+                    context.Request.Path.StartsWithSegments("/api/webhook/ghn"))
                 {
                     // Enable buffering với buffer size lớn để đảm bảo có thể đọc body
                     context.Request.EnableBuffering(bufferLimit: 10485760); // 10MB

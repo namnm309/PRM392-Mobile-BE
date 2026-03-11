@@ -40,6 +40,11 @@ namespace DAL.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("address_line2");
 
+                    b.Property<string>("AddressNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("address_note");
+
                     b.Property<string>("City")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -56,15 +61,31 @@ namespace DAL.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("district");
 
+                    b.Property<int?>("DistrictId")
+                        .HasColumnType("integer")
+                        .HasColumnName("district_id");
+
                     b.Property<bool>("IsPrimary")
                         .HasColumnType("boolean")
                         .HasColumnName("is_primary");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latitude");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("longitude");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("phone_number");
+
+                    b.Property<int?>("ProvinceId")
+                        .HasColumnType("integer")
+                        .HasColumnName("province_id");
 
                     b.Property<string>("RecipientName")
                         .IsRequired()
@@ -85,6 +106,11 @@ namespace DAL.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("ward");
+
+                    b.Property<string>("WardCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("ward_code");
 
                     b.HasKey("Id");
 
@@ -302,6 +328,122 @@ namespace DAL.Migrations
                     b.ToTable("tbl_comment_replies");
                 });
 
+            modelBuilder.Entity("DAL.Models.LinkedAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_used_at");
+
+                    b.Property<DateTime>("LinkedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("linked_at");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("ProviderAvatarUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("provider_avatar_url");
+
+                    b.Property<string>("ProviderEmail")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("provider_email");
+
+                    b.Property<string>("ProviderName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("provider_name");
+
+                    b.Property<string>("ProviderUserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("provider_user_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Provider", "ProviderUserId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "Provider")
+                        .IsUnique();
+
+                    b.ToTable("tbl_linked_accounts");
+                });
+
+            modelBuilder.Entity("DAL.Models.MembershipTier", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Benefits")
+                        .HasColumnType("text")
+                        .HasColumnName("benefits");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("discount_percent");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("display_order");
+
+                    b.Property<string>("IconUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("icon_url");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<int>("MaxPoints")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_points");
+
+                    b.Property<int>("MinPoints")
+                        .HasColumnType("integer")
+                        .HasColumnName("min_points");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DisplayOrder");
+
+                    b.HasIndex("IsActive");
+
+                    b.ToTable("tbl_membership_tiers");
+                });
+
             modelBuilder.Entity("DAL.Models.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -338,10 +480,43 @@ namespace DAL.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("discount_amount");
 
+                    b.Property<DateTime?>("ExpectedDeliveryTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expected_delivery_time");
+
+                    b.Property<string>("GhnOrderCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("ghn_order_code");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("notes");
+
+                    b.Property<DateTime?>("PaymentDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("payment_date");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("payment_method");
+
+                    b.Property<string>("PaymentStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("payment_status");
+
+                    b.Property<decimal>("ShippingFee")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("shipping_fee");
+
+                    b.Property<int?>("ShippingServiceId")
+                        .HasColumnType("integer")
+                        .HasColumnName("shipping_service_id");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -364,6 +539,11 @@ namespace DAL.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
+
+                    b.Property<string>("VnPayTransactionNo")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("vnpay_transaction_no");
 
                     b.Property<Guid?>("VoucherId")
                         .HasColumnType("uuid")
@@ -426,6 +606,51 @@ namespace DAL.Migrations
                     b.HasIndex("ProductId", "Status");
 
                     b.ToTable("tbl_order_items");
+                });
+
+            modelBuilder.Entity("DAL.Models.PointTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<int>("Points")
+                        .HasColumnType("integer")
+                        .HasColumnName("points");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("type");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("tbl_point_transactions");
                 });
 
             modelBuilder.Entity("DAL.Models.Product", b =>
@@ -758,6 +983,37 @@ namespace DAL.Migrations
                     b.ToTable("tbl_voucher_usages");
                 });
 
+            modelBuilder.Entity("DAL.Models.WishlistItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("tbl_wishlist_items");
+                });
+
             modelBuilder.Entity("DAL.Models.Address", b =>
                 {
                     b.HasOne("DAL.Models.User", "User")
@@ -836,6 +1092,17 @@ namespace DAL.Migrations
                     b.Navigation("Staff");
                 });
 
+            modelBuilder.Entity("DAL.Models.LinkedAccount", b =>
+                {
+                    b.HasOne("DAL.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("DAL.Models.Order", b =>
                 {
                     b.HasOne("DAL.Models.Address", "Address")
@@ -878,6 +1145,24 @@ namespace DAL.Migrations
                     b.Navigation("Order");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("DAL.Models.PointTransaction", b =>
+                {
+                    b.HasOne("DAL.Models.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("DAL.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("DAL.Models.Product", b =>
@@ -933,6 +1218,25 @@ namespace DAL.Migrations
                     b.Navigation("User");
 
                     b.Navigation("Voucher");
+                });
+
+            modelBuilder.Entity("DAL.Models.WishlistItem", b =>
+                {
+                    b.HasOne("DAL.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DAL.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("DAL.Models.Brand", b =>

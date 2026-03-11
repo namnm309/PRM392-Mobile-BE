@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using BAL.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -22,13 +22,14 @@ namespace TechStoreController.Services
 
         public void PostConfigure(string? name, JwtBearerOptions options)
         {
+            // Cho phép lệch giờ tối đa 2 phút giữa Clerk và server (tránh 401 trên emulator do đồng hồ sai)
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = false,
                 ValidateAudience = false,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
-                ClockSkew = TimeSpan.Zero,
+                ClockSkew = TimeSpan.FromMinutes(2),
                 IssuerSigningKeyResolver = (token, securityToken, kid, parameters) =>
                 {
                     var jwksProvider = _serviceProvider.GetRequiredService<IClerkJwksProvider>();//verify cái token mà client cung cấp từ header

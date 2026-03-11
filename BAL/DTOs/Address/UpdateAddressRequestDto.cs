@@ -27,5 +27,17 @@ namespace BAL.DTOs.Address
 
         [MaxLength(100, ErrorMessage = "City cannot exceed 100 characters")]
         public string? City { get; set; }
+
+        public int? ProvinceId { get; set; }
+        public int? DistrictId { get; set; }
+
+        [MaxLength(20, ErrorMessage = "Ward code cannot exceed 20 characters")]
+        public string? WardCode { get; set; }
+
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+
+        [MaxLength(500, ErrorMessage = "Address note cannot exceed 500 characters")]
+        public string? AddressNote { get; set; }
     }
 }
