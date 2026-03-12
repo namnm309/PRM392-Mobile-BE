@@ -177,14 +177,93 @@ namespace BAL.Services
             category.UpdatedAt = DateTime.UtcNow;
 
             var updated = await _categoryRepository.UpdateAsync(category);
+
+            // If children is provided in the request, we treat it as the new desired
+            // full set of direct children for this category (replace-all strategy).
+            var childDtos = new List<CategoryResponseDto>();
+
+            if (request.Children != null)
+            {
+                // Remove existing direct children
+                var existingChildren = await _categoryRepository.FindAsync(c => c.ParentId == id);
+                foreach (var child in existingChildren)
+                {
+                    await _categoryRepository.DeleteAsync(child.Id);
+                }
+
+                // Re-create children from request
+                foreach (var childItem in request.Children.Where(c => !string.IsNullOrWhiteSpace(c.Name)))
+                {
+                    var trimmedName = childItem.Name.Trim();
+
+                    // Ensure global name uniqueness (same rule as create)
+                    var childExisting = await _categoryRepository.GetByNameAsync(trimmedName);
+                    if (childExisting != null)
+                        throw new InvalidOperationException($"Child category with name '{trimmedName}' already exists");
+
+                    var child = new Category
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = trimmedName,
+                        Description = null,
+                        ImageUrl = childItem.ImageUrl,
+                        DisplayOrder = childItem.DisplayOrder,
+                        IsHot = childItem.IsHot,
+                        ParentId = updated.Id,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+
+                    await _categoryRepository.AddAsync(child);
+                    childDtos.Add(MapToDto(child, 0, []));
+                }
+            }
+            else
+            {
+                // Children not provided -> keep current children in response
+                var existingChildren = await _categoryRepository.FindAsync(c => c.ParentId == id);
+                foreach (var child in existingChildren)
+                {
+                    var childProductCount = await _productRepository.CountAsync(p => p.CategoryId == child.Id);
+                    childDtos.Add(MapToDto(child, childProductCount, []));
+                }
+            }
+
             var productCount = await _productRepository.CountAsync(p => p.CategoryId == id);
-            return MapToDto(updated, productCount, []);
+            return MapToDto(updated, productCount, childDtos);
         }
 
         public async Task<bool> DeleteCategoryAsync(Guid id)
         {
-            // Hard delete: remove category from database
-            return await _categoryRepository.DeleteAsync(id);
+            // Hard delete: remove category and all of its descendant categories
+            var allCategories = (await _categoryRepository.GetCategoriesWithChildrenAsync()).ToList();
+            if (!allCategories.Any(c => c.Id == id))
+                return false;
+
+            var idsToDelete = new List<Guid>();
+
+            void CollectDescendants(Guid currentId)
+            {
+                var children = allCategories.Where(c => c.ParentId == currentId).ToList();
+                foreach (var child in children)
+                {
+                    CollectDescendants(child.Id);
+                }
+
+                // Add after children so that we delete leaves first, then parents
+                idsToDelete.Add(currentId);
+            }
+
+            CollectDescendants(id);
+
+            var success = true;
+            foreach (var categoryId in idsToDelete)
+            {
+                var deleted = await _categoryRepository.DeleteAsync(categoryId);
+                success = success && deleted;
+            }
+
+            return success;
         }
 
         private async Task<Dictionary<Guid, int>> GetProductCountsAsync(IEnumerable<Guid> categoryIds)
