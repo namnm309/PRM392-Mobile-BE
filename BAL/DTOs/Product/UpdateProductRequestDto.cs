@@ -33,5 +33,12 @@ namespace BAL.DTOs.Product
         public bool? IsOnSale { get; set; }
 
         public bool? NoVoucherTag { get; set; }
+
+        /// <summary>
+        /// Optional list of images for the product. If this is null, the product's images
+        /// will not be changed. If provided (even if empty), the existing images for the
+        /// product will be replaced by this list.
+        /// </summary>
+        public List<ProductImageItemDto>? Images { get; set; }
     }
 }

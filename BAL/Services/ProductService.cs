@@ -5,6 +5,7 @@ using BAL.DTOs.ProductImage;
 using DAL.Data;
 using DAL.Models;
 using DAL.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace BAL.Services
 {
@@ -124,6 +125,42 @@ namespace BAL.Services
             };
 
             var created = await _productRepository.AddAsync(product);
+
+            // Create related product images if provided
+            if (request.Images is { Count: > 0 })
+            {
+                var validTypes = new[] { "Main", "Sub", "Poster", "Thumbnail" };
+
+                var images = request.Images
+                    .Where(i => !string.IsNullOrWhiteSpace(i.ImageUrl))
+                    .Select(i => new ProductImage
+                    {
+                        Id = Guid.NewGuid(),
+                        ProductId = created.Id,
+                        ImageUrl = i.ImageUrl,
+                        ImageType = validTypes.Contains(i.ImageType) ? i.ImageType : "Sub",
+                        DisplayOrder = i.DisplayOrder,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    })
+                    .ToList();
+
+                if (images.Count > 0)
+                {
+                    await _context.ProductImages.AddRangeAsync(images);
+
+                    // If no main image has been set on the product, use Main image or first image as thumbnail
+                    if (string.IsNullOrWhiteSpace(created.ImageUrl))
+                    {
+                        var mainImage = images.FirstOrDefault(img => img.ImageType == "Main") ?? images.First();
+                        created.ImageUrl = mainImage.ImageUrl;
+                        _context.Products.Update(created);
+                    }
+
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             var productWithDetails = await _productRepository.GetByIdWithDetailsAsync(created.Id);
             return MapToDto(productWithDetails!);
         }
@@ -257,6 +294,57 @@ namespace BAL.Services
             if (request.NoVoucherTag.HasValue)
                 product.NoVoucherTag = request.NoVoucherTag.Value;
 
+            // Replace product images if a new list is provided
+            if (request.Images != null)
+            {
+                var existingImages = await _context.ProductImages
+                    .Where(pi => pi.ProductId == product.Id)
+                    .ToListAsync();
+
+                if (existingImages.Count > 0)
+                {
+                    _context.ProductImages.RemoveRange(existingImages);
+                }
+
+                if (request.Images.Count > 0)
+                {
+                    var validTypes = new[] { "Main", "Sub", "Poster", "Thumbnail" };
+
+                    var newImages = request.Images
+                        .Where(i => !string.IsNullOrWhiteSpace(i.ImageUrl))
+                        .Select(i => new ProductImage
+                        {
+                            Id = Guid.NewGuid(),
+                            ProductId = product.Id,
+                            ImageUrl = i.ImageUrl,
+                            ImageType = validTypes.Contains(i.ImageType) ? i.ImageType : "Sub",
+                            DisplayOrder = i.DisplayOrder,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        })
+                        .ToList();
+
+                    if (newImages.Count > 0)
+                    {
+                        await _context.ProductImages.AddRangeAsync(newImages);
+
+                        // Sync main thumbnail on product
+                        var mainImage = newImages.FirstOrDefault(img => img.ImageType == "Main") ?? newImages.First();
+                        product.ImageUrl = mainImage.ImageUrl;
+                    }
+                    else
+                    {
+                        // If list is provided but effectively empty, clear thumbnail
+                        product.ImageUrl = null;
+                    }
+                }
+                else
+                {
+                    // Provided empty list -> remove all images and clear thumbnail
+                    product.ImageUrl = null;
+                }
+            }
+
             product.UpdatedAt = DateTime.UtcNow;
             var updated = await _productRepository.UpdateAsync(product);
             var productWithDetails = await _productRepository.GetByIdWithDetailsAsync(updated.Id);
@@ -341,16 +429,19 @@ namespace BAL.Services
                 IsActive = product.IsActive,
                 IsOnSale = product.IsOnSale,
                 NoVoucherTag = product.NoVoucherTag,
-                ProductImages = product.ProductImages?.Select(pi => new ProductImageResponseDto
-                {
-                    Id = pi.Id,
-                    ProductId = pi.ProductId,
-                    ImageUrl = pi.ImageUrl,
-                    ImageType = pi.ImageType,
-                    DisplayOrder = pi.DisplayOrder,
-                    CreatedAt = pi.CreatedAt,
-                    UpdatedAt = pi.UpdatedAt
-                }).ToList() ?? new List<ProductImageResponseDto>(),
+                ProductImages = product.ProductImages?
+                    .OrderBy(pi => pi.DisplayOrder)
+                    .ThenBy(pi => pi.CreatedAt)
+                    .Select(pi => new ProductImageResponseDto
+                    {
+                        Id = pi.Id,
+                        ProductId = pi.ProductId,
+                        ImageUrl = pi.ImageUrl,
+                        ImageType = pi.ImageType,
+                        DisplayOrder = pi.DisplayOrder,
+                        CreatedAt = pi.CreatedAt,
+                        UpdatedAt = pi.UpdatedAt
+                    }).ToList() ?? new List<ProductImageResponseDto>(),
                 CreatedAt = product.CreatedAt,
                 UpdatedAt = product.UpdatedAt
             };

@@ -36,5 +36,11 @@ namespace BAL.DTOs.Product
         public bool IsOnSale { get; set; } = false;
 
         public bool NoVoucherTag { get; set; } = false;
+
+        /// <summary>
+        /// Optional list of images for the product. When provided, each item will be created
+        /// as a ProductImage entity linked to the newly created product.
+        /// </summary>
+        public List<ProductImageItemDto> Images { get; set; } = new();
     }
 }

@@ -131,7 +131,7 @@ namespace TechStoreController.Controllers
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<CategoryResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<ApiResponse<CategoryResponseDto>>> UpdateCategory(Guid id, [FromBody] UpdateCategoryRequestDto request)
+        public async Task<ActionResult<ApiResponse<CategoryResponseDto>>> UpdateCategory(Guid id, [FromBody] CreateCategoryRequestDto request)
         {
             try
             {

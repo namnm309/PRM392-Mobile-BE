@@ -152,37 +152,27 @@ namespace BAL.Services
             return result;
         }
 
-        public async Task<CategoryResponseDto?> UpdateCategoryAsync(Guid id, UpdateCategoryRequestDto request)
+        public async Task<CategoryResponseDto?> UpdateCategoryAsync(Guid id, CreateCategoryRequestDto request)
         {
             var category = await _categoryRepository.GetByIdAsync(id);
             if (category == null)
                 return null;
 
-            // Business rule: Check name uniqueness if name is being updated
-            if (request.Name != null && request.Name != category.Name)
+            // Business rule: Check name uniqueness when updating
+            if (!string.Equals(request.Name, category.Name, StringComparison.Ordinal))
             {
                 var existing = await _categoryRepository.GetByNameAsync(request.Name);
                 if (existing != null && existing.Id != id)
                 {
                     throw new InvalidOperationException($"Category with name '{request.Name}' already exists");
                 }
-                category.Name = request.Name;
             }
 
-            if (request.Description != null)
-                category.Description = request.Description;
-
-            if (request.ImageUrl != null)
-                category.ImageUrl = request.ImageUrl;
-
-            if (request.DisplayOrder.HasValue)
-                category.DisplayOrder = request.DisplayOrder.Value;
-
-            if (request.IsHot.HasValue)
-                category.IsHot = request.IsHot.Value;
-
-            if (request.ParentId.HasValue)
-                category.ParentId = request.ParentId.Value;
+            category.Name = request.Name;
+            category.Description = request.Description;
+            category.ImageUrl = request.ImageUrl;
+            category.DisplayOrder = request.DisplayOrder;
+            category.IsHot = request.IsHot;
 
             category.UpdatedAt = DateTime.UtcNow;
 

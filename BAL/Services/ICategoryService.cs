@@ -11,7 +11,7 @@ namespace BAL.Services
         Task<IEnumerable<CategoryResponseDto>> GetAllCategoriesAsync();
         Task<CategoryResponseDto> CreateCategoryAsync(CreateCategoryRequestDto request);
         Task<IEnumerable<CategoryResponseDto>> BulkCreateCategoriesAsync(IEnumerable<BulkCreateCategoryItemDto> items);
-        Task<CategoryResponseDto?> UpdateCategoryAsync(Guid id, UpdateCategoryRequestDto request);
+        Task<CategoryResponseDto?> UpdateCategoryAsync(Guid id, CreateCategoryRequestDto request);
         Task<bool> DeleteCategoryAsync(Guid id);
     }
 }
