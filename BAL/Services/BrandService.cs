@@ -60,6 +60,7 @@ namespace BAL.Services
                 Id = Guid.NewGuid(),
                 Name = request.Name,
                 Description = request.Description,
+                ImageUrl = request.ImageUrl,
                 IsActive = request.IsActive,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -99,6 +100,7 @@ namespace BAL.Services
                 Id = Guid.NewGuid(),
                 Name = item.Name.Trim(),
                 Description = item.Description,
+                ImageUrl = item.ImageUrl,
                 IsActive = item.IsActive,
                 CreatedAt = now,
                 UpdatedAt = now
@@ -129,6 +131,9 @@ namespace BAL.Services
 
             if (request.Description != null)
                 brand.Description = request.Description;
+
+            if (request.ImageUrl != null)
+                brand.ImageUrl = request.ImageUrl;
 
             if (request.IsActive.HasValue)
             {
@@ -228,6 +233,7 @@ namespace BAL.Services
                 Id = brand.Id,
                 Name = brand.Name,
                 Description = brand.Description,
+                ImageUrl = brand.ImageUrl,
                 IsActive = brand.IsActive,
                 CreatedAt = brand.CreatedAt,
                 UpdatedAt = brand.UpdatedAt

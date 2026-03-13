@@ -13,6 +13,9 @@ namespace BAL.DTOs.Brand
 
         public string? Description { get; set; }
 
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
         public bool IsActive { get; set; } = true;
     }
 }

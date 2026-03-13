@@ -422,6 +422,7 @@ namespace BAL.Services
                     Id = product.Brand.Id,
                     Name = product.Brand.Name,
                     Description = product.Brand.Description,
+                    ImageUrl = product.Brand.ImageUrl,
                     IsActive = product.Brand.IsActive,
                     CreatedAt = product.Brand.CreatedAt,
                     UpdatedAt = product.Brand.UpdatedAt
