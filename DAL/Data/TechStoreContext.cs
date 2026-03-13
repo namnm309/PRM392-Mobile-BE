@@ -27,6 +27,7 @@ namespace DAL.Data
         public DbSet<Product> Products { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Brand> Brands { get; set; }
+        public DbSet<CategoryBrand> CategoryBrands { get; set; }
         public DbSet<ProductImage> ProductImages { get; set; }
         public DbSet<Address> Addresses { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
@@ -173,6 +174,24 @@ namespace DAL.Data
             {
                 entity.HasIndex(b => b.Name);
                 entity.HasIndex(b => b.IsActive);
+            });
+
+            // CategoryBrand configuration - many-to-many Category <-> Brand
+            modelBuilder.Entity<CategoryBrand>(entity =>
+            {
+                entity.HasIndex(cb => new { cb.CategoryId, cb.BrandId }).IsUnique();
+                entity.HasIndex(cb => cb.CategoryId);
+                entity.HasIndex(cb => cb.BrandId);
+
+                entity.HasOne(cb => cb.Category)
+                      .WithMany(c => c.CategoryBrands)
+                      .HasForeignKey(cb => cb.CategoryId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(cb => cb.Brand)
+                      .WithMany(b => b.CategoryBrands)
+                      .HasForeignKey(cb => cb.BrandId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Product configuration - Update with Category and Brand relationships

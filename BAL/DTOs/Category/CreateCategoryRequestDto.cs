@@ -23,6 +23,13 @@ namespace BAL.DTOs.Category
         public bool IsHot { get; set; } = false;
 
         /// <summary>
+        /// Danh sách brand gắn với category này.
+        /// Nếu null (trong trường hợp update dùng chung DTO), service sẽ giữ nguyên mapping brand hiện tại.
+        /// Nếu được cung cấp (kể cả mảng rỗng), service sẽ replace toàn bộ mapping brand theo danh sách này.
+        /// </summary>
+        public List<Guid>? BrandIds { get; set; } = new();
+
+        /// <summary>
         /// Danh sách category con (sẽ được tạo và gán vào category cha này).
         /// Hỗ trợ format: ["Child1", "Child2"] hoặc [{"name":"Child1","imageUrl":null,"displayOrder":0,"isHot":false}]
         /// </summary>

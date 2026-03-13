@@ -21,6 +21,10 @@ namespace DAL.Models
         [Column("description", TypeName = "text")]
         public string? Description { get; set; }
 
+        [Column("image_url")]
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
         [Required]
         [Column("is_active")]
         public bool IsActive { get; set; } = true;
@@ -33,5 +37,6 @@ namespace DAL.Models
 
         // Navigation Properties
         public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+        public virtual ICollection<CategoryBrand> CategoryBrands { get; set; } = new List<CategoryBrand>();
     }
 }

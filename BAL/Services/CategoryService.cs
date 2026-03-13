@@ -1,4 +1,6 @@
 using BAL.DTOs.Category;
+using BAL.DTOs.Brand;
+using DAL.Data;
 using DAL.Models;
 using DAL.Repositories;
 
@@ -11,20 +13,23 @@ namespace BAL.Services
     {
         private readonly ICategoryRepository _categoryRepository;
         private readonly IProductRepository _productRepository;
+        private readonly TechStoreContext _context;
 
-        public CategoryService(ICategoryRepository categoryRepository, IProductRepository productRepository)
+        public CategoryService(ICategoryRepository categoryRepository, IProductRepository productRepository, TechStoreContext context)
         {
             _categoryRepository = categoryRepository;
             _productRepository = productRepository;
+            _context = context;
         }
 
         public async Task<CategoryResponseDto?> GetCategoryByIdAsync(Guid id)
         {
-            var category = await _categoryRepository.GetByIdAsync(id);
+            var category = await _categoryRepository.GetByIdWithDetailsAsync(id);
             if (category == null) return null;
 
             var productCount = await _productRepository.CountAsync(p => p.CategoryId == id);
-            return MapToDto(category, productCount, []);
+            var brands = MapBrands(category);
+            return MapToDto(category, productCount, [], brands);
         }
 
         public async Task<IEnumerable<CategoryResponseDto>> GetAllCategoriesAsync()
@@ -87,11 +92,20 @@ namespace BAL.Services
                     UpdatedAt = DateTime.UtcNow
                 };
                 await _categoryRepository.AddAsync(child);
-                childDtos.Add(MapToDto(child, 0, []));
+                childDtos.Add(MapToDto(child, 0, [], new List<BrandResponseDto>()));
+            }
+
+            // Create category-brand mappings if BrandIds are provided
+            if (request.BrandIds != null && request.BrandIds.Count > 0)
+            {
+                await ReplaceCategoryBrandsAsync(created.Id, request.BrandIds);
+                // Reload navigation for mapping
+                created = await _categoryRepository.GetByIdWithDetailsAsync(created.Id) ?? created;
             }
 
             var productCount = await _productRepository.CountAsync(p => p.CategoryId == created.Id);
-            return MapToDto(created, productCount, childDtos);
+            var brands = MapBrands(created);
+            return MapToDto(created, productCount, childDtos, brands);
         }
 
         public async Task<IEnumerable<CategoryResponseDto>> BulkCreateCategoriesAsync(IEnumerable<BulkCreateCategoryItemDto> items)
@@ -142,11 +156,12 @@ namespace BAL.Services
                         UpdatedAt = DateTime.UtcNow
                     };
                     await _categoryRepository.AddAsync(child);
-                    childDtos.Add(MapToDto(child, 0, []));
+                    childDtos.Add(MapToDto(child, 0, [], new List<BrandResponseDto>()));
                 }
 
                 var parentProductCount = await _productRepository.CountAsync(p => p.CategoryId == parent.Id);
-                result.Add(MapToDto(parent, parentProductCount, childDtos));
+                var parentBrands = MapBrands(parent);
+                result.Add(MapToDto(parent, parentProductCount, childDtos, parentBrands));
             }
 
             return result;
@@ -215,7 +230,7 @@ namespace BAL.Services
                     };
 
                     await _categoryRepository.AddAsync(child);
-                    childDtos.Add(MapToDto(child, 0, []));
+                    childDtos.Add(MapToDto(child, 0, [], new List<BrandResponseDto>()));
                 }
             }
             else
@@ -225,12 +240,20 @@ namespace BAL.Services
                 foreach (var child in existingChildren)
                 {
                     var childProductCount = await _productRepository.CountAsync(p => p.CategoryId == child.Id);
-                    childDtos.Add(MapToDto(child, childProductCount, []));
+                    childDtos.Add(MapToDto(child, childProductCount, [], new List<BrandResponseDto>()));
                 }
             }
 
+            // Update category-brand mappings if BrandIds are provided
+            if (request.BrandIds != null)
+            {
+                await ReplaceCategoryBrandsAsync(updated.Id, request.BrandIds);
+                updated = await _categoryRepository.GetByIdWithDetailsAsync(updated.Id) ?? updated;
+            }
+
             var productCount = await _productRepository.CountAsync(p => p.CategoryId == id);
-            return MapToDto(updated, productCount, childDtos);
+            var brands = MapBrands(updated);
+            return MapToDto(updated, productCount, childDtos, brands);
         }
 
         public async Task<bool> DeleteCategoryAsync(Guid id)
@@ -282,6 +305,7 @@ namespace BAL.Services
                 .ThenBy(c => c.Name)
                 .ToList();
             var productCount = productCounts.GetValueOrDefault(category.Id, 0);
+            var brands = MapBrands(category);
 
             return new CategoryResponseDto
             {
@@ -292,13 +316,64 @@ namespace BAL.Services
                 DisplayOrder = category.DisplayOrder,
                 IsHot = category.IsHot,
                 ProductCount = productCount,
+                Brands = brands,
                 Children = children.Select(c => BuildCategoryTree(c, allCategories, productCounts)).ToList(),
                 CreatedAt = category.CreatedAt,
                 UpdatedAt = category.UpdatedAt
             };
         }
 
-        private static CategoryResponseDto MapToDto(Category category, int productCount, List<CategoryResponseDto> children)
+        private static List<BrandResponseDto> MapBrands(Category category)
+        {
+            if (category.CategoryBrands == null || category.CategoryBrands.Count == 0)
+                return new List<BrandResponseDto>();
+
+            return category.CategoryBrands
+                .Where(cb => cb.Brand != null)
+                .Select(cb => cb.Brand)
+                .Distinct()
+                .Select(brand => new BrandResponseDto
+                {
+                    Id = brand.Id,
+                    Name = brand.Name,
+                    Description = brand.Description,
+                    ImageUrl = brand.ImageUrl,
+                    IsActive = brand.IsActive,
+                    CreatedAt = brand.CreatedAt,
+                    UpdatedAt = brand.UpdatedAt
+                })
+                .ToList();
+        }
+
+        private async Task ReplaceCategoryBrandsAsync(Guid categoryId, List<Guid> brandIds)
+        {
+            // Remove existing mappings
+            var existing = _context.CategoryBrands
+                .Where(cb => cb.CategoryId == categoryId);
+
+            _context.CategoryBrands.RemoveRange(existing);
+
+            if (brandIds.Count == 0)
+            {
+                await _context.SaveChangesAsync();
+                return;
+            }
+
+            var distinctBrandIds = brandIds.Distinct().ToList();
+
+            var mappings = distinctBrandIds.Select((brandId, index) => new CategoryBrand
+            {
+                Id = Guid.NewGuid(),
+                CategoryId = categoryId,
+                BrandId = brandId,
+                DisplayOrder = index
+            }).ToList();
+
+            await _context.CategoryBrands.AddRangeAsync(mappings);
+            await _context.SaveChangesAsync();
+        }
+
+        private static CategoryResponseDto MapToDto(Category category, int productCount, List<CategoryResponseDto> children, List<BrandResponseDto> brands)
         {
             return new CategoryResponseDto
             {
@@ -309,6 +384,7 @@ namespace BAL.Services
                 DisplayOrder = category.DisplayOrder,
                 IsHot = category.IsHot,
                 ProductCount = productCount,
+                Brands = brands,
                 Children = children,
                 CreatedAt = category.CreatedAt,
                 UpdatedAt = category.UpdatedAt

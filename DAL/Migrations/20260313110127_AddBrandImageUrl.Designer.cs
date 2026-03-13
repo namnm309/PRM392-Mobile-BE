@@ -3,6 +3,7 @@ using System;
 using DAL.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DAL.Migrations
 {
     [DbContext(typeof(TechStoreContext))]
-    partial class TechStoreContextModelSnapshot : ModelSnapshot
+    [Migration("20260313110127_AddBrandImageUrl")]
+    partial class AddBrandImageUrl
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -251,37 +254,6 @@ namespace DAL.Migrations
                     b.HasIndex("ParentId");
 
                     b.ToTable("tbl_categories");
-                });
-
-            modelBuilder.Entity("DAL.Models.CategoryBrand", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("BrandId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("brand_id");
-
-                    b.Property<Guid>("CategoryId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("category_id");
-
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("integer")
-                        .HasColumnName("display_order");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BrandId");
-
-                    b.HasIndex("CategoryId");
-
-                    b.HasIndex("CategoryId", "BrandId")
-                        .IsUnique();
-
-                    b.ToTable("tbl_category_brands");
                 });
 
             modelBuilder.Entity("DAL.Models.Comment", b =>
@@ -1090,25 +1062,6 @@ namespace DAL.Migrations
                     b.Navigation("Parent");
                 });
 
-            modelBuilder.Entity("DAL.Models.CategoryBrand", b =>
-                {
-                    b.HasOne("DAL.Models.Brand", "Brand")
-                        .WithMany("CategoryBrands")
-                        .HasForeignKey("BrandId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DAL.Models.Category", "Category")
-                        .WithMany("CategoryBrands")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Brand");
-
-                    b.Navigation("Category");
-                });
-
             modelBuilder.Entity("DAL.Models.Comment", b =>
                 {
                     b.HasOne("DAL.Models.Product", "Product")
@@ -1296,15 +1249,11 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("DAL.Models.Brand", b =>
                 {
-                    b.Navigation("CategoryBrands");
-
                     b.Navigation("Products");
                 });
 
             modelBuilder.Entity("DAL.Models.Category", b =>
                 {
-                    b.Navigation("CategoryBrands");
-
                     b.Navigation("Children");
 
                     b.Navigation("Products");

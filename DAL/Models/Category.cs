@@ -46,5 +46,6 @@ namespace DAL.Models
 
         public virtual ICollection<Category> Children { get; set; } = new List<Category>();
         public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+        public virtual ICollection<CategoryBrand> CategoryBrands { get; set; } = new List<CategoryBrand>();
     }
 }
