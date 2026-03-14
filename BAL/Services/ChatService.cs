@@ -2,7 +2,10 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using BAL.DTOs.Chat;
+using BAL.DTOs.Product;
+using BAL.DTOs.Category;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -13,6 +16,10 @@ namespace BAL.Services
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
         private readonly ILogger<ChatService> _logger;
+        private readonly IProductService _productService;
+        private readonly ICategoryService _categoryService;
+
+        private static readonly string[] VietnameseStopWords = { "có", "là", "gì", "nào", "bao", "nhiêu", "cho", "tôi", "mình", "bạn", "của", "và", "hoặc", "với", "từ", "đến", "các", "một", "những", "này", "đó", "không", "được", "hay", "muốn", "cần", "tìm", "mua", "xem", "giá", "thế", "ra", "sao", "ạ", "ơi", "nhé", "ạ" };
 
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
@@ -20,11 +27,14 @@ namespace BAL.Services
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
 
-        public ChatService(HttpClient httpClient, IConfiguration configuration, ILogger<ChatService> logger)
+        public ChatService(HttpClient httpClient, IConfiguration configuration, ILogger<ChatService> logger,
+            IProductService productService, ICategoryService categoryService)
         {
             _httpClient = httpClient;
             _configuration = configuration;
             _logger = logger;
+            _productService = productService;
+            _categoryService = categoryService;
         }
 
         /// <summary>
@@ -95,6 +105,13 @@ namespace BAL.Services
             if (string.IsNullOrEmpty(systemPrompt))
             {
                 systemPrompt = "Bạn là trợ lý AI của TechStore - cửa hàng công nghệ. Bạn giúp người dùng tìm sản phẩm, so sánh giá, tư vấn mua hàng. Trả lời ngắn gọn bằng tiếng Việt.";
+            }
+
+            var lastUserMessage = GetLastUserMessage(request);
+            var dbContext = await GetProductAndCategoryContextAsync(lastUserMessage, cancellationToken);
+            if (!string.IsNullOrEmpty(dbContext))
+            {
+                systemPrompt += "\n\n" + dbContext;
             }
 
             var messages = new List<object>();
@@ -206,10 +223,104 @@ namespace BAL.Services
             return new ChatResponseDto { Content = text, Usage = usage };
         }
 
+        private static string? GetLastUserMessage(ChatRequestDto request)
+        {
+            if (request.Messages != null && request.Messages.Count > 0)
+            {
+                var last = request.Messages
+                    .Where(m => string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase))
+                    .LastOrDefault();
+                return last?.Content?.Trim();
+            }
+            return request.Message?.Trim();
+        }
+
+        private async Task<string> GetProductAndCategoryContextAsync(string? userMessage, CancellationToken cancellationToken)
+        {
+            var sb = new StringBuilder();
+            try
+            {
+                var searchTerms = ExtractSearchTerms(userMessage);
+                var products = new HashSet<ProductResponseDto>(new ProductIdComparer());
+                const int maxProducts = 25;
+
+                if (searchTerms.Count > 0)
+                {
+                    foreach (var term in searchTerms.Take(5))
+                    {
+                        if (products.Count >= maxProducts) break;
+                        var found = await _productService.SearchProductsAsync(name: term, isActive: true);
+                        foreach (var p in found.Take(maxProducts - products.Count))
+                            products.Add(p);
+                    }
+                }
+
+                if (products.Count == 0 && !string.IsNullOrWhiteSpace(userMessage))
+                {
+                    var found = await _productService.SearchProductsAsync(name: userMessage.Trim(), isActive: true);
+                    foreach (var p in found.Take(maxProducts))
+                        products.Add(p);
+                }
+
+                if (products.Count == 0)
+                {
+                    var all = await _productService.GetAllProductsAsync(isActive: true);
+                    foreach (var p in all.Take(maxProducts))
+                        products.Add(p);
+                }
+
+                var categories = await _categoryService.GetAllCategoriesAsync();
+                var categoryNames = categories.Select(c => c.Name).Where(n => !string.IsNullOrEmpty(n)).ToList();
+
+                sb.AppendLine("=== DỮ LIỆU SẢN PHẨM VÀ DANH MỤC HIỆN CÓ (lấy từ cơ sở dữ liệu thực) ===");
+                sb.AppendLine("DANH MỤC: " + string.Join(", ", categoryNames));
+
+                if (products.Count > 0)
+                {
+                    sb.AppendLine("\nSẢN PHẨM (ID, Tên, Giá gốc, Giá khuyến mãi nếu có, Tồn kho, Danh mục, Thương hiệu):");
+                    foreach (var p in products.Take(maxProducts))
+                    {
+                        var priceStr = p.DiscountPrice.HasValue && p.DiscountPrice < p.Price
+                            ? $"{p.Price:N0}đ → {p.DiscountPrice:N0}đ"
+                            : $"{p.Price:N0}đ";
+                        sb.AppendLine($"- ID:{p.Id} | {p.Name} | {priceStr} | Còn:{p.Stock} | {(p.Category?.Name ?? "-")} | {(p.Brand?.Name ?? "-")}");
+                    }
+                }
+
+                sb.AppendLine("\nHãy dùng chính xác dữ liệu trên khi tư vấn: tên sản phẩm, giá, tồn kho. Nếu không có sản phẩm phù hợp, nói rõ và gợi ý danh mục có sẵn.");
+                return sb.ToString();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Không lấy được dữ liệu DB cho chatbot");
+                return string.Empty;
+            }
+        }
+
+        private static List<string> ExtractSearchTerms(string? message)
+        {
+            if (string.IsNullOrWhiteSpace(message)) return new List<string>();
+
+            var cleaned = Regex.Replace(message, @"[^\p{L}\p{N}\s]", " ");
+            var words = cleaned.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(w => w.Trim().ToLowerInvariant())
+                .Where(w => w.Length >= 2 && !VietnameseStopWords.Contains(w))
+                .Distinct()
+                .ToList();
+
+            return words.Take(8).ToList();
+        }
+
         private static string BuildImageDataUrl(string base64, string? format)
         {
             var mime = string.Equals(format, "png", StringComparison.OrdinalIgnoreCase) ? "image/png" : "image/jpeg";
             return $"data:{mime};base64,{base64}";
+        }
+
+        private class ProductIdComparer : IEqualityComparer<ProductResponseDto>
+        {
+            public bool Equals(ProductResponseDto? x, ProductResponseDto? y) => x?.Id == y?.Id;
+            public int GetHashCode(ProductResponseDto obj) => obj.Id.GetHashCode();
         }
 
         #region Mega LLM Models
