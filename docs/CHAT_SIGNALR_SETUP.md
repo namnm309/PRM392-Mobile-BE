@@ -2,7 +2,18 @@
 
 ## Lỗi 401 Unauthorized khi kết nối chat
 
-SignalR **không gửi Authorization header** như API bình thường. Token phải truyền qua query string `?access_token=xxx`.
+### Nguyên nhân 1: User chưa có trong DB (thường gặp nhất)
+
+`OnTokenValidated` kiểm tra user theo ClerkId (sub trong JWT). **Nếu không tìm thấy → 401.**
+
+**Cách sửa:** Đảm bảo user đã được tạo trong bảng Users:
+- Đăng ký qua app → Clerk webhook `user.created` gọi backend tạo user
+- Hoặc gọi `POST /api/Users` để tạo thủ công với ClerkId
+- Kiểm tra: `SELECT * FROM Users WHERE ClerkId = 'user_xxx'` (lấy ClerkId từ Clerk Dashboard)
+
+### Nguyên nhân 2: Token không được đọc từ query
+
+SignalR **không gửi Authorization header**. Token phải truyền qua query string `?access_token=xxx`.
 
 **Frontend** (đã có trong `supportChatService.ts`):
 ```ts
@@ -17,10 +28,8 @@ SignalR **không gửi Authorization header** như API bình thường. Token ph
 ```
 
 **Backend** (trong `ClerkJwtBearerPostConfigure.cs`):
-- `OnMessageReceived` phải đọc `context.Request.Query["access_token"]` khi path chứa `/hubs/`
-- Nếu không có đoạn này → 401
-
-**User phải có trong DB**: `OnTokenValidated` kiểm tra user theo ClerkId. Nếu không tìm thấy → 401 "User not found for ClerkId". Tạo user qua webhook Clerk hoặc POST /api/Users.
+- `OnMessageReceived` đọc `context.Request.Query["access_token"]` khi path chứa `hubs/`
+- Đã cập nhật để match path chính xác hơn (StartsWith, Contains)
 
 ## Lỗi 404 / Timeout khi kết nối chat
 
