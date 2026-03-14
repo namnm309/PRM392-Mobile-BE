@@ -3,10 +3,12 @@ using BAL.Services;
 using DAL.Data;
 using DAL.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
+using TechStoreController.Hubs;
 using TechStoreController.Middleware;
 using TechStoreController.Services;
 
@@ -22,6 +24,10 @@ namespace TechStoreController
             
             // HttpClient
             builder.Services.AddHttpClient();
+
+            // AI Chat - Mega LLM (timeout 90s)
+            builder.Services.AddHttpClient<ChatService>()
+                .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(90));
 
             // Clerk Backend API (for dev token endpoint: get JWT by userId)
             builder.Services.AddHttpClient<IClerkBackendApiService, ClerkBackendApiService>((sp, client) =>
@@ -98,6 +104,7 @@ namespace TechStoreController
             builder.Services.AddScoped<ILinkedAccountService, LinkedAccountService>();
             builder.Services.AddScoped<IVnPayService, VnPayService>();
             builder.Services.AddScoped<IGhnService, GhnService>();
+            builder.Services.AddScoped<ChatService>();
 
             // ============================================
             // Background Services
@@ -173,6 +180,9 @@ namespace TechStoreController
                 options.AddPolicy("StaffOrAdmin", policy => policy.RequireRole("Staff", "Admin"));
             });
 
+            // SignalR
+            builder.Services.AddSignalR();
+
             // CORS configuration
             builder.Services.AddCors(options =>
             {
@@ -237,6 +247,11 @@ namespace TechStoreController
             app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
             app.MapControllers();
+            // Chỉ Long Polling để tránh 503.13 (giới hạn WebSocket trên Azure Free/Shared)
+            app.MapHub<SupportChatHub>("/hubs/support-chat", options =>
+            {
+                options.Transports = HttpTransportType.LongPolling;
+            });
 
             app.Run();
         }

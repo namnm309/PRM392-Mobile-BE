@@ -40,6 +40,20 @@ namespace TechStoreController.Services
 
             options.Events = new JwtBearerEvents
             {
+                OnMessageReceived = context =>
+                {
+                    var path = (context.Request.Path.Value ?? "").TrimStart('/');
+                    var isHub = path.StartsWith("hubs/", StringComparison.OrdinalIgnoreCase) || path.Contains("/hubs/", StringComparison.OrdinalIgnoreCase);
+                    if (isHub && context.Request.Query.TryGetValue("access_token", out var tokenValues))
+                    {
+                        var accessToken = tokenValues.ToString();
+                        if (!string.IsNullOrWhiteSpace(accessToken))
+                        {
+                            context.Token = accessToken;
+                        }
+                    }
+                    return Task.CompletedTask;
+                },
                 OnAuthenticationFailed = context =>
                 {
                     var logger = context.HttpContext.RequestServices.GetService(typeof(ILogger<ClerkJwtBearerPostConfigure>)) as ILogger<ClerkJwtBearerPostConfigure>;
