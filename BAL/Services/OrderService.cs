@@ -21,6 +21,8 @@ namespace BAL.Services
         private readonly IProductRepository _productRepository;
         private readonly IAddressRepository _addressRepository;
         private readonly ICartItemRepository _cartItemRepository;
+        private readonly IVoucherRepository _voucherRepository;
+        private readonly IVoucherUsageRepository _voucherUsageRepository;
         private readonly IGhnService _ghnService;
         private readonly TechStoreContext _context;
         private readonly ILogger<OrderService> _logger;
@@ -31,6 +33,8 @@ namespace BAL.Services
             IProductRepository productRepository,
             IAddressRepository addressRepository,
             ICartItemRepository cartItemRepository,
+            IVoucherRepository voucherRepository,
+            IVoucherUsageRepository voucherUsageRepository,
             IGhnService ghnService,
             TechStoreContext context,
             ILogger<OrderService> logger)
@@ -40,6 +44,8 @@ namespace BAL.Services
             _productRepository = productRepository;
             _addressRepository = addressRepository;
             _cartItemRepository = cartItemRepository;
+            _voucherRepository = voucherRepository;
+            _voucherUsageRepository = voucherUsageRepository;
             _ghnService = ghnService;
             _context = context;
             _logger = logger;
@@ -176,6 +182,7 @@ namespace BAL.Services
 
                 // Business rule: Validate products and calculate totals
                 decimal subtotal = 0;
+                decimal subtotalEligibleForVoucher = 0;
                 var orderItems = new List<OrderItem>();
 
                 foreach (var itemRequest in request.OrderItems)
@@ -199,6 +206,14 @@ namespace BAL.Services
                     var unitPrice = product.DiscountPrice ?? product.Price;
                     subtotal += unitPrice * itemRequest.Quantity;
 
+                    // Determine if this item is eligible for voucher discount
+                    var isOnSale = product.IsOnSale || (product.DiscountPrice.HasValue && product.DiscountPrice < product.Price);
+                    var isEligibleForVoucher = !isOnSale && !product.NoVoucherTag;
+                    if (isEligibleForVoucher)
+                    {
+                        subtotalEligibleForVoucher += unitPrice * itemRequest.Quantity;
+                    }
+
                     var orderItem = new OrderItem
                     {
                         Id = Guid.NewGuid(),
@@ -221,11 +236,76 @@ namespace BAL.Services
                 // Business rule: Apply voucher if provided
                 decimal discountAmount = 0;
                 Guid? voucherId = null;
+
                 if (request.VoucherId.HasValue)
                 {
-                    // Voucher application logic would go here (similar to VoucherService)
-                    // For now, we'll just store the voucher ID
-                    voucherId = request.VoucherId.Value;
+                    var voucher = await _voucherRepository.GetByIdAsync(request.VoucherId.Value);
+                    if (voucher == null)
+                    {
+                        throw new InvalidOperationException("Voucher not found");
+                    }
+
+                    var now = DateTime.UtcNow;
+
+                    if (!voucher.IsActive)
+                    {
+                        throw new InvalidOperationException("Voucher is not active");
+                    }
+
+                    if (voucher.StartTime > now || voucher.EndTime < now)
+                    {
+                        throw new InvalidOperationException("Voucher is not valid at this time");
+                    }
+
+                    var totalUsage = await _voucherRepository.GetUsageCountAsync(voucher.Id);
+                    if (voucher.TotalUsageLimit > 0 && totalUsage >= voucher.TotalUsageLimit)
+                    {
+                        throw new InvalidOperationException("Voucher has reached its usage limit");
+                    }
+
+                    var userUsage = await _voucherRepository.GetUsageCountByUserAsync(voucher.Id, userId);
+                    if (userUsage >= voucher.PerUserLimit)
+                    {
+                        throw new InvalidOperationException("You have reached the usage limit for this voucher");
+                    }
+
+                    if (subtotalEligibleForVoucher <= 0)
+                    {
+                        throw new InvalidOperationException("No eligible items for voucher. All items are on sale or have voucher restrictions.");
+                    }
+
+                    if (subtotalEligibleForVoucher < voucher.MinOrderValue)
+                    {
+                        throw new InvalidOperationException($"Minimum order value of {voucher.MinOrderValue:C} is required to use this voucher");
+                    }
+
+                    // Calculate discount (support Percent, Fixed, Amount)
+                    var discountType = voucher.DiscountType.Trim();
+                    if (discountType.Equals("Amount", StringComparison.OrdinalIgnoreCase))
+                    {
+                        discountType = "Fixed";
+                    }
+
+                    if (discountType.Equals("Percent", StringComparison.OrdinalIgnoreCase))
+                    {
+                        discountAmount = subtotalEligibleForVoucher * (voucher.Value / 100);
+                        if (voucher.MaxDiscountValue.HasValue && voucher.MaxDiscountValue.Value > 0)
+                        {
+                            discountAmount = Math.Min(discountAmount, voucher.MaxDiscountValue.Value);
+                        }
+                    }
+                    else if (discountType.Equals("Fixed", StringComparison.OrdinalIgnoreCase))
+                    {
+                        discountAmount = Math.Min(voucher.Value, subtotalEligibleForVoucher);
+                    }
+
+                    // Ensure non-negative discount
+                    if (discountAmount < 0)
+                    {
+                        discountAmount = 0;
+                    }
+
+                    voucherId = voucher.Id;
                 }
 
                 var shippingFee = request.ShippingFee;
@@ -258,6 +338,22 @@ namespace BAL.Services
                 {
                     item.OrderId = createdOrder.Id;
                     await _orderItemRepository.AddAsync(item);
+                }
+
+                // Track voucher usage if a voucher was applied
+                if (voucherId.HasValue && discountAmount > 0)
+                {
+                    var voucherUsage = new VoucherUsage
+                    {
+                        Id = Guid.NewGuid(),
+                        VoucherId = voucherId.Value,
+                        UserId = userId,
+                        OrderId = createdOrder.Id,
+                        DiscountAmount = discountAmount,
+                        UsedAt = DateTime.UtcNow
+                    };
+
+                    await _voucherUsageRepository.AddAsync(voucherUsage);
                 }
 
                 await transaction.CommitAsync();
