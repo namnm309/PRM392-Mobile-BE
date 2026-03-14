@@ -277,17 +277,17 @@ namespace BAL.Services
 
                 if (products.Count > 0)
                 {
-                    sb.AppendLine("\nSẢN PHẨM (ID, Tên, Giá gốc, Giá khuyến mãi nếu có, Tồn kho, Danh mục, Thương hiệu):");
+                    sb.AppendLine("\nSẢN PHẨM (liệt kê cho user đúng format dưới đây):");
                     foreach (var p in products.Take(maxProducts))
                     {
-                        var priceStr = p.DiscountPrice.HasValue && p.DiscountPrice < p.Price
-                            ? $"{p.Price:N0}đ → {p.DiscountPrice:N0}đ"
-                            : $"{p.Price:N0}đ";
-                        sb.AppendLine($"- ID:{p.Id} | {p.Name} | {priceStr} | Còn:{p.Stock} | {(p.Category?.Name ?? "-")} | {(p.Brand?.Name ?? "-")}");
+                        var displayPrice = p.DiscountPrice.HasValue && p.DiscountPrice < p.Price
+                            ? p.DiscountPrice.Value
+                            : p.Price;
+                        sb.AppendLine($"- {p.Name}: {displayPrice:N0}đ");
                     }
                 }
 
-                sb.AppendLine("\nHãy dùng chính xác dữ liệu trên khi tư vấn: tên sản phẩm, giá, tồn kho. Nếu không có sản phẩm phù hợp, nói rõ và gợi ý danh mục có sẵn.");
+                sb.AppendLine("\nHãy dùng chính xác dữ liệu trên khi tư vấn. Khi liệt kê sản phẩm cho user, dùng format: - Tên sản phẩm: giá đ (mỗi dòng một sản phẩm, xuống dòng rõ ràng). KHÔNG dùng bảng, KHÔNG dùng ký tự |. Chỉ ghi tên và giá, vừa đủ, dễ đọc. Ưu tiên giá khuyến mãi nếu có, không thì giá gốc. Nếu không có sản phẩm phù hợp, nói rõ và gợi ý danh mục có sẵn.");
                 return sb.ToString();
             }
             catch (Exception ex)
