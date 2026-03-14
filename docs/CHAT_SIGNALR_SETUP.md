@@ -1,5 +1,27 @@
 # Cấu hình SignalR Chat cho Azure App Service
 
+## Lỗi 401 Unauthorized khi kết nối chat
+
+SignalR **không gửi Authorization header** như API bình thường. Token phải truyền qua query string `?access_token=xxx`.
+
+**Frontend** (đã có trong `supportChatService.ts`):
+```ts
+.withUrl(HUB_URL, {
+  accessTokenFactory: async () => {
+    const t = await getToken();
+    if (!t) throw new Error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+    return t;
+  },  // SignalR tự thêm ?access_token=... vào mọi request
+  transport: signalR.HttpTransportType.LongPolling,
+})
+```
+
+**Backend** (trong `ClerkJwtBearerPostConfigure.cs`):
+- `OnMessageReceived` phải đọc `context.Request.Query["access_token"]` khi path chứa `/hubs/`
+- Nếu không có đoạn này → 401
+
+**User phải có trong DB**: `OnTokenValidated` kiểm tra user theo ClerkId. Nếu không tìm thấy → 401 "User not found for ClerkId". Tạo user qua webhook Clerk hoặc POST /api/Users.
+
 ## Lỗi 404 / Timeout khi kết nối chat
 
 Nếu mobile hoặc admin gặp lỗi **404** hoặc **Timeout** khi kết nối SignalR, kiểm tra các mục sau trên **Azure Portal**:
@@ -19,7 +41,8 @@ Nếu mobile hoặc admin gặp lỗi **404** hoặc **Timeout** khi kết nối
 
 ### 3. Kiểm tra URL
 
-- Hub endpoint: `https://<your-app>.azurewebsites.net/hubs/support-chat`
+- Hub endpoint đúng: `https://<your-app>.azurewebsites.net/hubs/support-chat`
+- **Sai**: `https://TechStoreBE:80/...` (port 80 không dùng với HTTPS; dùng domain đầy đủ)
 - Mobile/Admin dùng `EXPO_PUBLIC_API_BASE_URL` / `NEXT_PUBLIC_API_BASE_URL` trỏ đúng backend
 
 ### 4. User trong Database

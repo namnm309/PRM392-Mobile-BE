@@ -42,12 +42,15 @@ namespace TechStoreController.Services
             {
                 OnMessageReceived = context =>
                 {
-                    var path = context.Request.Path;
-                    if (path.StartsWithSegments("/hubs"))
+                    var path = context.Request.Path.Value ?? "";
+                    if (path.Contains("/hubs/", StringComparison.OrdinalIgnoreCase))
                     {
-                        var accessToken = context.Request.Query["access_token"].FirstOrDefault();
-                        if (!string.IsNullOrEmpty(accessToken))
-                            context.Token = accessToken;
+                        if (context.Request.Query.TryGetValue("access_token", out var tokenValues))
+                        {
+                            var accessToken = tokenValues.ToString();
+                            if (!string.IsNullOrWhiteSpace(accessToken))
+                                context.Token = accessToken;
+                        }
                     }
                     return Task.CompletedTask;
                 },
