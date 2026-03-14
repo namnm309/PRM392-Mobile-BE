@@ -47,6 +47,24 @@ namespace DAL.Repositories
             return true;
         }
 
+        public async Task<bool> DeleteCartItemsByIdsAsync(Guid userId, List<Guid> cartItemIds)
+        {
+            if (cartItemIds == null || !cartItemIds.Any())
+                return false;
+
+            // Only delete items that belong to the user
+            var items = await _dbSet
+                .Where(c => c.UserId == userId && cartItemIds.Contains(c.Id))
+                .ToListAsync();
+
+            if (!items.Any())
+                return false;
+
+            _dbSet.RemoveRange(items);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<int> GetCartItemCountAsync(Guid userId)
         {
             return await _dbSet.Where(c => c.UserId == userId).CountAsync();

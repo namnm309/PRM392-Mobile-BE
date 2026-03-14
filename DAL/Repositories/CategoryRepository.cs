@@ -20,8 +20,22 @@ namespace DAL.Repositories
 
         public async Task<IEnumerable<Category>> GetCategoriesWithChildrenAsync()
         {
-            var query = _dbSet.AsQueryable();
-            return await query.OrderBy(c => c.DisplayOrder).ThenBy(c => c.Name).ToListAsync();
+            var query = _dbSet
+                .Include(c => c.CategoryBrands)
+                    .ThenInclude(cb => cb.Brand);
+
+            return await query
+                .OrderBy(c => c.DisplayOrder)
+                .ThenBy(c => c.Name)
+                .ToListAsync();
+        }
+
+        public async Task<Category?> GetByIdWithDetailsAsync(Guid id)
+        {
+            return await _dbSet
+                .Include(c => c.CategoryBrands)
+                    .ThenInclude(cb => cb.Brand)
+                .FirstOrDefaultAsync(c => c.Id == id);
         }
     }
 }

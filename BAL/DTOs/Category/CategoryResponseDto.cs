@@ -1,3 +1,5 @@
+using BAL.DTOs.Brand;
+
 namespace BAL.DTOs.Category
 {
     /// <summary>
@@ -12,6 +14,7 @@ namespace BAL.DTOs.Category
         public int DisplayOrder { get; set; }
         public bool IsHot { get; set; }
         public int ProductCount { get; set; }
+        public List<BrandResponseDto> Brands { get; set; } = new();
         public List<CategoryResponseDto> Children { get; set; } = new();
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }

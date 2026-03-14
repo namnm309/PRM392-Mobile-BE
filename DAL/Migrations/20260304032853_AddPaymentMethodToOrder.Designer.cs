@@ -3,6 +3,7 @@ using System;
 using DAL.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DAL.Migrations
 {
     [DbContext(typeof(TechStoreContext))]
-    partial class TechStoreContextModelSnapshot : ModelSnapshot
+    [Migration("20260304032853_AddPaymentMethodToOrder")]
+    partial class AddPaymentMethodToOrder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -40,11 +43,6 @@ namespace DAL.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("address_line2");
 
-                    b.Property<string>("AddressNote")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("address_note");
-
                     b.Property<string>("City")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -61,31 +59,15 @@ namespace DAL.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("district");
 
-                    b.Property<int?>("DistrictId")
-                        .HasColumnType("integer")
-                        .HasColumnName("district_id");
-
                     b.Property<bool>("IsPrimary")
                         .HasColumnType("boolean")
                         .HasColumnName("is_primary");
-
-                    b.Property<double?>("Latitude")
-                        .HasColumnType("double precision")
-                        .HasColumnName("latitude");
-
-                    b.Property<double?>("Longitude")
-                        .HasColumnType("double precision")
-                        .HasColumnName("longitude");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("phone_number");
-
-                    b.Property<int?>("ProvinceId")
-                        .HasColumnType("integer")
-                        .HasColumnName("province_id");
 
                     b.Property<string>("RecipientName")
                         .IsRequired()
@@ -106,11 +88,6 @@ namespace DAL.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("ward");
-
-                    b.Property<string>("WardCode")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("ward_code");
 
                     b.HasKey("Id");
 
@@ -133,11 +110,6 @@ namespace DAL.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text")
                         .HasColumnName("description");
-
-                    b.Property<string>("ImageUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("image_url");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
@@ -251,37 +223,6 @@ namespace DAL.Migrations
                     b.HasIndex("ParentId");
 
                     b.ToTable("tbl_categories");
-                });
-
-            modelBuilder.Entity("DAL.Models.CategoryBrand", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("BrandId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("brand_id");
-
-                    b.Property<Guid>("CategoryId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("category_id");
-
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("integer")
-                        .HasColumnName("display_order");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BrandId");
-
-                    b.HasIndex("CategoryId");
-
-                    b.HasIndex("CategoryId", "BrandId")
-                        .IsUnique();
-
-                    b.ToTable("tbl_category_brands");
                 });
 
             modelBuilder.Entity("DAL.Models.Comment", b =>
@@ -516,43 +457,16 @@ namespace DAL.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("discount_amount");
 
-                    b.Property<DateTime?>("ExpectedDeliveryTime")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expected_delivery_time");
-
-                    b.Property<string>("GhnOrderCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("ghn_order_code");
-
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("notes");
-
-                    b.Property<DateTime?>("PaymentDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("payment_date");
 
                     b.Property<string>("PaymentMethod")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("payment_method");
-
-                    b.Property<string>("PaymentStatus")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("payment_status");
-
-                    b.Property<decimal>("ShippingFee")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("shipping_fee");
-
-                    b.Property<int?>("ShippingServiceId")
-                        .HasColumnType("integer")
-                        .HasColumnName("shipping_service_id");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -575,11 +489,6 @@ namespace DAL.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
-
-                    b.Property<string>("VnPayTransactionNo")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("vnpay_transaction_no");
 
                     b.Property<Guid?>("VoucherId")
                         .HasColumnType("uuid")
@@ -1090,25 +999,6 @@ namespace DAL.Migrations
                     b.Navigation("Parent");
                 });
 
-            modelBuilder.Entity("DAL.Models.CategoryBrand", b =>
-                {
-                    b.HasOne("DAL.Models.Brand", "Brand")
-                        .WithMany("CategoryBrands")
-                        .HasForeignKey("BrandId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DAL.Models.Category", "Category")
-                        .WithMany("CategoryBrands")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Brand");
-
-                    b.Navigation("Category");
-                });
-
             modelBuilder.Entity("DAL.Models.Comment", b =>
                 {
                     b.HasOne("DAL.Models.Product", "Product")
@@ -1296,15 +1186,11 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("DAL.Models.Brand", b =>
                 {
-                    b.Navigation("CategoryBrands");
-
                     b.Navigation("Products");
                 });
 
             modelBuilder.Entity("DAL.Models.Category", b =>
                 {
-                    b.Navigation("CategoryBrands");
-
                     b.Navigation("Children");
 
                     b.Navigation("Products");

@@ -16,7 +16,15 @@ namespace BAL.DTOs.Order
         public string? Notes { get; set; }
 
         [Required]
+        [MaxLength(50)]
+        public string PaymentMethod { get; set; } = "COD"; // COD (Cash on Delivery), Online
+
+        [Required]
         public List<CreateOrderItemRequestDto> OrderItems { get; set; } = new();
+
+        public decimal ShippingFee { get; set; } = 0;
+
+        public int? ShippingServiceId { get; set; }
     }
 
     /// <summary>

@@ -11,6 +11,7 @@ namespace DAL.Repositories
         Task<CartItem?> GetByUserIdAndProductIdAsync(Guid userId, Guid productId);
         Task<CartItem?> GetByIdWithProductAsync(Guid id);
         Task<bool> ClearCartByUserIdAsync(Guid userId);
+        Task<bool> DeleteCartItemsByIdsAsync(Guid userId, List<Guid> cartItemIds);
         Task<int> GetCartItemCountAsync(Guid userId);
     }
 }

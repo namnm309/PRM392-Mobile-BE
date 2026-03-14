@@ -55,6 +55,26 @@ namespace DAL.Models
         [Column("is_primary")]
         public bool IsPrimary { get; set; } = false;
 
+        [Column("province_id")]
+        public int? ProvinceId { get; set; }
+
+        [Column("district_id")]
+        public int? DistrictId { get; set; }
+
+        [Column("ward_code")]
+        [MaxLength(20)]
+        public string? WardCode { get; set; }
+
+        [Column("latitude")]
+        public double? Latitude { get; set; }
+
+        [Column("longitude")]
+        public double? Longitude { get; set; }
+
+        [Column("address_note")]
+        [MaxLength(500)]
+        public string? AddressNote { get; set; }
+
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

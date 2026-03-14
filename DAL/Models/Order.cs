@@ -24,7 +24,7 @@ namespace DAL.Models
         [Required]
         [Column("status")]
         [MaxLength(50)]
-        public string Status { get; set; } = "Pending"; // Pending, Processing, Shipped, Delivered, SUCCESS, Cancelled
+        public string Status { get; set; } = "Pending"; // Pending, Processing, Confirmed, Shipping, Delivered, SUCCESS, Cancelled
 
         [Required]
         [Column("subtotal", TypeName = "decimal(18,2)")]
@@ -62,6 +62,36 @@ namespace DAL.Models
 
         [Column("cancelled_by")]
         public Guid? CancelledBy { get; set; }
+
+        [Required]
+        [Column("payment_method")]
+        [MaxLength(50)]
+        public string PaymentMethod { get; set; } = "COD"; // COD (Cash on Delivery), Online
+
+        [Required]
+        [Column("payment_status")]
+        [MaxLength(50)]
+        public string PaymentStatus { get; set; } = "Pending"; // Pending, Paid, Failed, ManualReview, Expired, COD
+
+        [Column("vnpay_transaction_no")]
+        [MaxLength(100)]
+        public string? VnPayTransactionNo { get; set; }
+
+        [Column("payment_date")]
+        public DateTime? PaymentDate { get; set; }
+
+        [Column("shipping_fee", TypeName = "decimal(18,2)")]
+        public decimal ShippingFee { get; set; } = 0;
+
+        [Column("ghn_order_code")]
+        [MaxLength(50)]
+        public string? GhnOrderCode { get; set; }
+
+        [Column("expected_delivery_time")]
+        public DateTime? ExpectedDeliveryTime { get; set; }
+
+        [Column("shipping_service_id")]
+        public int? ShippingServiceId { get; set; }
 
         // Navigation Properties
         [ForeignKey("UserId")]

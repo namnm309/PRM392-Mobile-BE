@@ -9,5 +9,6 @@ namespace DAL.Repositories
     {
         Task<IEnumerable<Category>> GetCategoriesWithChildrenAsync();
         Task<Category?> GetByNameAsync(string name);
+        Task<Category?> GetByIdWithDetailsAsync(Guid id);
     }
 }
