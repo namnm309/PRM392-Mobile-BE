@@ -180,11 +180,8 @@ namespace TechStoreController
                 options.AddPolicy("StaffOrAdmin", policy => policy.RequireRole("Staff", "Admin"));
             });
 
-            // SignalR - chỉ Long Polling để tránh 503.13 (giới hạn WebSocket trên Azure Free/Shared)
-            builder.Services.AddSignalR(options =>
-            {
-                options.Transports = HttpTransportType.LongPolling;
-            });
+            // SignalR
+            builder.Services.AddSignalR();
 
             // CORS configuration
             builder.Services.AddCors(options =>
@@ -250,7 +247,11 @@ namespace TechStoreController
             app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
             app.MapControllers();
-            app.MapHub<SupportChatHub>("/hubs/support-chat");
+            // Chỉ Long Polling để tránh 503.13 (giới hạn WebSocket trên Azure Free/Shared)
+            app.MapHub<SupportChatHub>("/hubs/support-chat", options =>
+            {
+                options.Transports = HttpTransportType.LongPolling;
+            });
 
             app.Run();
         }
