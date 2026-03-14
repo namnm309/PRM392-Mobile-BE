@@ -23,6 +23,10 @@ namespace TechStoreController
             // HttpClient
             builder.Services.AddHttpClient();
 
+            // AI Chat - Mega LLM (timeout 90s)
+            builder.Services.AddHttpClient<ChatService>()
+                .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(90));
+
             // Clerk Backend API (for dev token endpoint: get JWT by userId)
             builder.Services.AddHttpClient<IClerkBackendApiService, ClerkBackendApiService>((sp, client) =>
             {
@@ -98,6 +102,7 @@ namespace TechStoreController
             builder.Services.AddScoped<ILinkedAccountService, LinkedAccountService>();
             builder.Services.AddScoped<IVnPayService, VnPayService>();
             builder.Services.AddScoped<IGhnService, GhnService>();
+            builder.Services.AddScoped<ChatService>();
 
             // ============================================
             // Background Services
