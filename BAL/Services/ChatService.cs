@@ -108,7 +108,7 @@ namespace BAL.Services
             }
 
             var lastUserMessage = GetLastUserMessage(request);
-            var dbContext = await GetProductAndCategoryContextAsync(lastUserMessage, cancellationToken);
+            var (dbContext, primaryProductId) = await GetProductAndCategoryContextAsync(lastUserMessage, cancellationToken);
             if (!string.IsNullOrEmpty(dbContext))
             {
                 systemPrompt += "\n\n" + dbContext;
@@ -220,7 +220,7 @@ namespace BAL.Services
                 }
                 : null;
 
-            return new ChatResponseDto { Content = text, Usage = usage };
+            return new ChatResponseDto { Content = text, Usage = usage, PrimaryProductId = primaryProductId };
         }
 
         private static string? GetLastUserMessage(ChatRequestDto request)
@@ -235,9 +235,10 @@ namespace BAL.Services
             return request.Message?.Trim();
         }
 
-        private async Task<string> GetProductAndCategoryContextAsync(string? userMessage, CancellationToken cancellationToken)
+        private async Task<(string Context, Guid? PrimaryProductId)> GetProductAndCategoryContextAsync(string? userMessage, CancellationToken cancellationToken)
         {
             var sb = new StringBuilder();
+            Guid? primaryProductId = null;
             try
             {
                 var searchTerms = ExtractSearchTerms(userMessage);
@@ -262,7 +263,8 @@ namespace BAL.Services
                         products.Add(p);
                 }
 
-                if (products.Count == 0)
+                var hasMatchingProducts = products.Count > 0;
+                if (!hasMatchingProducts)
                 {
                     var all = await _productService.GetAllProductsAsync(isActive: true);
                     foreach (var p in all.Take(maxProducts))
@@ -275,25 +277,101 @@ namespace BAL.Services
                 sb.AppendLine("=== DỮ LIỆU SẢN PHẨM VÀ DANH MỤC HIỆN CÓ (lấy từ cơ sở dữ liệu thực) ===");
                 sb.AppendLine("DANH MỤC: " + string.Join(", ", categoryNames));
 
-                if (products.Count > 0)
+                if (hasMatchingProducts && products.Count > 0)
                 {
+                    var productList = products.Take(maxProducts).ToList();
+                    primaryProductId = productList[0].Id;
                     sb.AppendLine("\nSẢN PHẨM (liệt kê cho user đúng format dưới đây):");
-                    foreach (var p in products.Take(maxProducts))
+                    foreach (var p in productList)
                     {
                         var displayPrice = p.DiscountPrice.HasValue && p.DiscountPrice < p.Price
                             ? p.DiscountPrice.Value
                             : p.Price;
                         sb.AppendLine($"- {p.Name}: {displayPrice:N0}đ");
                     }
+                    sb.AppendLine("\nHãy dùng chính xác dữ liệu trên khi tư vấn. Khi liệt kê sản phẩm cho user, dùng format: - Tên sản phẩm: giá đ (mỗi dòng một sản phẩm, xuống dòng rõ ràng). KHÔNG dùng bảng, KHÔNG dùng ký tự |. Chỉ ghi tên và giá, vừa đủ, dễ đọc. Ưu tiên giá khuyến mãi nếu có, không thì giá gốc.");
                 }
-
-                sb.AppendLine("\nHãy dùng chính xác dữ liệu trên khi tư vấn. Khi liệt kê sản phẩm cho user, dùng format: - Tên sản phẩm: giá đ (mỗi dòng một sản phẩm, xuống dòng rõ ràng). KHÔNG dùng bảng, KHÔNG dùng ký tự |. Chỉ ghi tên và giá, vừa đủ, dễ đọc. Ưu tiên giá khuyến mãi nếu có, không thì giá gốc. Nếu không có sản phẩm phù hợp, nói rõ và gợi ý danh mục có sẵn.");
-                return sb.ToString();
+                else if (!hasMatchingProducts && !string.IsNullOrWhiteSpace(userMessage) && IsWebSearchEnabled())
+                {
+                    var webContext = await SearchWebAsync(userMessage, cancellationToken);
+                    if (!string.IsNullOrEmpty(webContext))
+                    {
+                        sb.AppendLine("\n--- SẢN PHẨM KHÔNG CÓ TRONG DB TECHSTORE ---");
+                        sb.AppendLine("Dưới đây là thông tin tìm được từ internet về sản phẩm người dùng hỏi:");
+                        sb.AppendLine(webContext);
+                        sb.AppendLine("\nHãy dùng thông tin từ internet trên để tư vấn, so sánh thông số, giá (nếu có), ưu nhược điểm. Trả lời bằng tiếng Việt, format: - Tên: thông tin/giá. Nếu có nhiều nguồn, tổng hợp lại. Cuối cùng gợi ý: TechStore hiện chưa có sản phẩm này, bạn có thể tham khảo các danh mục: " + string.Join(", ", categoryNames) + ".");
+                    }
+                    else
+                    {
+                        sb.AppendLine("\nNếu không có sản phẩm phù hợp, nói rõ và gợi ý danh mục có sẵn.");
+                    }
+                }
+                else
+                {
+                    sb.AppendLine("\nNếu không có sản phẩm phù hợp, nói rõ và gợi ý danh mục có sẵn.");
+                }
+                return (sb.ToString(), primaryProductId);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Không lấy được dữ liệu DB cho chatbot");
-                return string.Empty;
+                return (string.Empty, null);
+            }
+        }
+
+        private bool IsWebSearchEnabled()
+        {
+            var enabled = _configuration["Serper:Enabled"];
+            if (string.Equals(enabled, "false", StringComparison.OrdinalIgnoreCase)) return false;
+            return !string.IsNullOrWhiteSpace(_configuration["Serper:ApiKey"]);
+        }
+
+        private async Task<string?> SearchWebAsync(string query, CancellationToken cancellationToken)
+        {
+            var apiKey = _configuration["Serper:ApiKey"]?.Trim();
+            if (string.IsNullOrEmpty(apiKey)) return null;
+
+            var numStr = _configuration["Serper:NumResults"];
+            var num = int.TryParse(numStr, out var n) && n > 0 && n <= 20 ? n : 8;
+
+            try
+            {
+                var searchQuery = $"{query.Trim()} thông số giá cả đánh giá";
+                var body = new { q = searchQuery, num, gl = "vn", hl = "vi" };
+                var jsonBody = JsonSerializer.Serialize(body);
+                using var req = new HttpRequestMessage(HttpMethod.Post, "https://google.serper.dev/search");
+                req.Headers.Add("X-API-KEY", apiKey);
+                req.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.SendAsync(req, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Serper API returned {StatusCode}", response.StatusCode);
+                    return null;
+                }
+
+                var serperOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var json = await response.Content.ReadFromJsonAsync<SerperSearchResponse>(serperOptions, cancellationToken);
+                if (json == null) return null;
+
+                var sb = new StringBuilder();
+                if (json.KnowledgeGraph != null)
+                {
+                    sb.AppendLine($"[Knowledge Graph] {json.KnowledgeGraph.Title}: {json.KnowledgeGraph.Description}");
+                }
+                if (json.Organic != null)
+                {
+                    foreach (var item in json.Organic.Take(num))
+                    {
+                        sb.AppendLine($"- {item.Title}: {item.Snippet}");
+                    }
+                }
+                return sb.Length > 0 ? sb.ToString() : null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Serper web search failed");
+                return null;
             }
         }
 
@@ -315,6 +393,25 @@ namespace BAL.Services
         {
             var mime = string.Equals(format, "png", StringComparison.OrdinalIgnoreCase) ? "image/png" : "image/jpeg";
             return $"data:{mime};base64,{base64}";
+        }
+
+        private class SerperSearchResponse
+        {
+            public SerperKnowledgeGraph? KnowledgeGraph { get; set; }
+            public List<SerperOrganicResult>? Organic { get; set; }
+        }
+
+        private class SerperKnowledgeGraph
+        {
+            public string? Title { get; set; }
+            public string? Description { get; set; }
+        }
+
+        private class SerperOrganicResult
+        {
+            public string? Title { get; set; }
+            public string? Snippet { get; set; }
+            public string? Link { get; set; }
         }
 
         private class ProductIdComparer : IEqualityComparer<ProductResponseDto>

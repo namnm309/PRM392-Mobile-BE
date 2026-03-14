@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
+using TechStoreController.Hubs;
 using TechStoreController.Middleware;
 using TechStoreController.Services;
 
@@ -178,6 +179,9 @@ namespace TechStoreController
                 options.AddPolicy("StaffOrAdmin", policy => policy.RequireRole("Staff", "Admin"));
             });
 
+            // SignalR
+            builder.Services.AddSignalR();
+
             // CORS configuration
             builder.Services.AddCors(options =>
             {
@@ -242,6 +246,7 @@ namespace TechStoreController
             app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
             app.MapControllers();
+            app.MapHub<SupportChatHub>("/hubs/support-chat");
 
             app.Run();
         }
