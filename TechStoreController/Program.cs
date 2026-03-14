@@ -3,6 +3,7 @@ using BAL.Services;
 using DAL.Data;
 using DAL.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
@@ -179,8 +180,11 @@ namespace TechStoreController
                 options.AddPolicy("StaffOrAdmin", policy => policy.RequireRole("Staff", "Admin"));
             });
 
-            // SignalR
-            builder.Services.AddSignalR();
+            // SignalR - chỉ Long Polling để tránh 503.13 (giới hạn WebSocket trên Azure Free/Shared)
+            builder.Services.AddSignalR(options =>
+            {
+                options.Transports = HttpTransportType.LongPolling;
+            });
 
             // CORS configuration
             builder.Services.AddCors(options =>
