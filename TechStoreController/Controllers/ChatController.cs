@@ -23,6 +23,18 @@ public class ChatController : ControllerBase
     }
 
     /// <summary>
+    /// Kiểm tra endpoint SignalR Hub (chat với nhân viên)
+    /// </summary>
+    [HttpGet("signalr-status")]
+    [AllowAnonymous]
+    public IActionResult SignalRStatus()
+    {
+        var baseUrl = Request.Scheme + "://" + Request.Host;
+        var hubUrl = baseUrl.TrimEnd('/') + "/hubs/support-chat";
+        return Ok(new { hubUrl, message = "Bật Web Sockets và ARR Affinity trên Azure nếu gặp 404/Timeout." });
+    }
+
+    /// <summary>
     /// Kiểm tra cấu hình Mega LLM
     /// </summary>
     [HttpGet("diagnostic")]
