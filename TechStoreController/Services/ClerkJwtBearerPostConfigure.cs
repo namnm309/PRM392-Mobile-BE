@@ -40,6 +40,17 @@ namespace TechStoreController.Services
 
             options.Events = new JwtBearerEvents
             {
+                OnMessageReceived = context =>
+                {
+                    var path = context.Request.Path;
+                    if (path.StartsWithSegments("/hubs"))
+                    {
+                        var accessToken = context.Request.Query["access_token"].FirstOrDefault();
+                        if (!string.IsNullOrEmpty(accessToken))
+                            context.Token = accessToken;
+                    }
+                    return Task.CompletedTask;
+                },
                 OnAuthenticationFailed = context =>
                 {
                     var logger = context.HttpContext.RequestServices.GetService(typeof(ILogger<ClerkJwtBearerPostConfigure>)) as ILogger<ClerkJwtBearerPostConfigure>;
