@@ -1,0 +1,161 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>TechStoreController</name>
+    </assembly>
+    <members>
+        <member name="T:TechStoreController.Controllers.AuthController">
+            <summary>
+            Auth endpoints: dev token (lấy JWT từ Clerk theo userId để test Swagger).
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Controllers.AuthController.GetDevToken(System.String,System.Threading.CancellationToken)">
+            <summary>
+            [Dev] Lấy JWT cho user từ Clerk (để dán vào Swagger Authorize).
+            Lấy userId từ Clerk Dashboard → Users → chọn user → copy User ID (user_xxx).
+            User phải có ít nhất một session active (đã đăng nhập từ app trước đó).
+            </summary>
+        </member>
+        <member name="T:TechStoreController.Controllers.ChatController">
+            <summary>
+            AI Chat Bot - tích hợp Mega LLM (OpenAI-compatible)
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Controllers.ChatController.Diagnostic(System.Threading.CancellationToken)">
+            <summary>
+            Kiểm tra cấu hình Mega LLM
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Controllers.ChatController.SendMessage(BAL.DTOs.Chat.ChatRequestDto,System.Threading.CancellationToken)">
+            <summary>
+            Gửi tin nhắn đến AI chat bot và nhận phản hồi
+            </summary>
+        </member>
+        <member name="T:TechStoreController.Controllers.ClerkWebhookController">
+            <summary>
+            Controller để nhận và xử lý webhook từ Clerk
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Controllers.ClerkWebhookController.HandleWebhook">
+            <summary>
+            Endpoint để nhận webhook từ Clerk
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Controllers.OrdersController.CreateShippingOrder(System.Guid)">
+            <summary>
+            Tạo đơn vận chuyển GHN cho order đã confirmed
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Controllers.OrdersController.GetGhnOrderStatus(System.Guid)">
+            <summary>
+            Lấy và cập nhật trạng thái đơn hàng từ GHN API (Pull model)
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Controllers.UsersController.GetMe">
+            <summary>
+            Who Am I
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Controllers.UsersController.GetUserById(System.Guid)">
+            <summary>
+            Who Is That (Staff/Admin)
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Controllers.UsersController.GetUserByClerkId(System.String)">
+            <summary>
+            Tìm user = Clerk ID / chỉ test cho clerk dashboard
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Controllers.UsersController.CreateUser(BAL.DTOs.User.CreateUserRequestDto)">
+            <summary>
+            Tạo user mới ( sau khi đăng ký = clerk , ko xài ) 
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Controllers.UsersController.UpdateUser(System.Guid,BAL.DTOs.User.UpdateUserRequestDto)">
+            <summary>
+            Update my self ( just myself)
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Controllers.UsersController.DeleteUser(System.Guid)">
+            <summary>
+            Delete user / soft delete (only own user or Admin).
+            </summary>
+        </member>
+        <member name="T:TechStoreController.Helpers.JwtHelper">
+            <summary>
+            Helper to read userId and role from claims (set after Clerk token validation in OnTokenValidated).
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Helpers.JwtHelper.GetUserId(System.Security.Claims.ClaimsPrincipal)">
+            <summary>
+            Get user ID from JWT claims (prefer backend userId Guid added in OnTokenValidated).
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Helpers.JwtHelper.GetClerkId(System.Security.Claims.ClaimsPrincipal)">
+            <summary>
+            Get Clerk ID from JWT claims (sub or clerkId added in OnTokenValidated).
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Helpers.JwtHelper.GetUserRole(System.Security.Claims.ClaimsPrincipal)">
+            <summary>
+            Get user role from JWT claims
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Helpers.JwtHelper.HasRole(System.Security.Claims.ClaimsPrincipal,System.String[])">
+            <summary>
+            Check if user has required role
+            </summary>
+        </member>
+        <member name="T:TechStoreController.Middleware.ExceptionHandlingMiddleware">
+            <summary>
+            Global exception handling middleware with error codes
+            </summary>
+        </member>
+        <member name="T:TechStoreController.Middleware.RequestIdMiddleware">
+            <summary>
+            Request ID middleware for logging correlation
+            </summary>
+        </member>
+        <member name="T:TechStoreController.Services.ClerkBackendApiService">
+            <summary>
+            Gọi Clerk Backend API qua HTTP. Cần cấu hình Clerk:SecretKey và Clerk:BackendApiUrl (mặc định https://api.clerk.com).
+            </summary>
+        </member>
+        <member name="T:TechStoreController.Services.ClerkJwksProvider">
+            <summary>
+            Fetches and caches Clerk JWKS; provides signing keys for JWT Bearer validation.
+            </summary>
+        </member>
+        <member name="T:TechStoreController.Services.ClerkJwtBearerPostConfigure">
+            <summary>
+            Verify cái JWT của clerk 
+            </summary>
+        </member>
+        <member name="T:TechStoreController.Services.IClerkBackendApiService">
+            <summary>
+            Gọi Clerk Backend API (list sessions, get session token) để phục vụ dev/test (lấy JWT từ userId).
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Services.IClerkBackendApiService.GetSessionTokenForUserAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Lấy session JWT cho user (user phải có ít nhất một session active - đã đăng nhập từ app trước đó).
+            Gọi Clerk: GET sessions?user_id= → POST sessions/{id}/tokens/default.
+            </summary>
+        </member>
+        <member name="T:TechStoreController.Services.IClerkJwksProvider">
+            <summary>
+            Provides Clerk JWKS signing keys for JWT Bearer validation. Caches keys and refreshes periodically.
+            </summary>
+        </member>
+        <member name="M:TechStoreController.Services.IClerkJwksProvider.GetSigningKeys">
+            <summary>
+            Returns the current signing keys from Clerk JWKS (cached). Used by AddJwtBearer IssuerSigningKeyResolver.
+            </summary>
+        </member>
+        <member name="T:TechStoreController.Services.OrderExpiryScannerService">
+            <summary>
+            Background service to auto-cancel orders that are pending payment for more than 24 hours
+            </summary>
+        </member>
+    </members>
+</doc>
