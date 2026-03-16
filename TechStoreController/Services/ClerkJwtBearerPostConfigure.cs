@@ -89,6 +89,8 @@ namespace TechStoreController.Services
                         identity.AddClaim(new Claim("clerkId", sub));
                         identity.AddClaim(new Claim(ClaimTypes.Role, user.Role));
                         identity.AddClaim(new Claim("role", user.Role));
+                        if (!string.IsNullOrWhiteSpace(user.FullName))
+                            identity.AddClaim(new Claim("name", user.FullName));
                     }
                 },
             };

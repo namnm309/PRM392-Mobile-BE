@@ -181,16 +181,22 @@ namespace TechStoreController
             });
 
             // SignalR
-            builder.Services.AddSignalR();
+            builder.Services.AddSignalR()
+                .AddJsonProtocol(options =>
+                {
+                    options.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                });
 
             // CORS configuration
+            // SignalR Long Polling yêu cầu AllowCredentials → không dùng AllowAnyOrigin được
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll", policy =>
                 {
-                    policy.AllowAnyOrigin()
+                    policy.SetIsOriginAllowed(_ => true)
                           .AllowAnyMethod()
-                          .AllowAnyHeader();
+                          .AllowAnyHeader()
+                          .AllowCredentials();
                 });
             });
 
