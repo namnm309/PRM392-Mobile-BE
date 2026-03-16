@@ -94,19 +94,19 @@ public class SupportChatHub : Hub
             userName,
             message = new
             {
-                msg.Id,
-                msg.Content,
-                msg.CreatedAt,
-                msg.SenderName
+                id = msg.Id,
+                content = msg.Content,
+                createdAt = msg.CreatedAt,
+                senderName = msg.SenderName
             },
             waitingCount = GetWaitingCount()
         });
 
         await Clients.Caller.SendAsync("MessageSent", new
         {
-            msg.Id,
-            msg.Content,
-            msg.CreatedAt
+            id = msg.Id,
+            content = msg.Content,
+            createdAt = msg.CreatedAt
         });
     }
 
@@ -148,17 +148,17 @@ public class SupportChatHub : Hub
 
         await Clients.Group($"User_{userId}").SendAsync("ReceiveStaffMessage", new
         {
-            msg.Id,
-            msg.Content,
-            msg.CreatedAt,
-            msg.SenderName
+            id = msg.Id,
+            content = msg.Content,
+            createdAt = msg.CreatedAt,
+            senderName = msg.SenderName
         });
 
         await Clients.Caller.SendAsync("MessageSent", new
         {
-            msg.Id,
-            msg.Content,
-            msg.CreatedAt
+            id = msg.Id,
+            content = msg.Content,
+            createdAt = msg.CreatedAt
         });
     }
 
@@ -274,6 +274,18 @@ public class SupportChatHub : Hub
                 WaitingForStaff = c.WaitingForStaff
             })
             .ToList();
+    }
+
+    public static ChatConversation GetOrCreateConversationApi(string userId, string userName)
+        => GetOrCreateConversation(userId, userName);
+
+    public static int GetWaitingCountApi() => GetWaitingCount();
+
+    public static IReadOnlyList<ChatMessage> GetUserMessagesApi(string userId)
+    {
+        if (!_conversations.TryGetValue(userId, out var conv))
+            return Array.Empty<ChatMessage>();
+        return conv.Messages.OrderBy(m => m.CreatedAt).ToList();
     }
 }
 
