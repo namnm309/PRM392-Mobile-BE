@@ -57,6 +57,19 @@ namespace BAL.Services
             return order == null ? null : MapToDto(order);
         }
 
+        public async Task<PagedResponse<OrderResponseDto>> GetAllOrdersAsync(int pageNumber, int pageSize, string? status = null)
+        {
+            var (orders, totalCount) = await _orderRepository.GetAllPagedAsync(pageNumber, pageSize, status);
+
+            return new PagedResponse<OrderResponseDto>
+            {
+                Items = orders.Select(MapToDto).ToList(),
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+        }
+
         public async Task<PagedResponse<OrderResponseDto>> GetOrdersByUserIdAsync(Guid userId, int pageNumber, int pageSize)
         {
             var (orders, totalCount) = await _orderRepository.SearchByUserIdAsync(userId, pageNumber, pageSize);

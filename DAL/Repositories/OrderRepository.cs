@@ -13,6 +13,31 @@ namespace DAL.Repositories
         {
         }
 
+        public async Task<(IEnumerable<Order> Orders, int TotalCount)> GetAllPagedAsync(int pageNumber, int pageSize, string? status = null)
+        {
+            var query = _dbSet.AsQueryable();
+
+            if (!string.IsNullOrEmpty(status))
+            {
+                query = query.Where(o => o.Status == status);
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var orders = await query
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Product)
+                .Include(o => o.Address)
+                .Include(o => o.Voucher)
+                .Include(o => o.User)
+                .OrderByDescending(o => o.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (orders, totalCount);
+        }
+
         public async Task<IEnumerable<Order>> GetByUserIdAsync(Guid userId)
         {
             return await _dbSet

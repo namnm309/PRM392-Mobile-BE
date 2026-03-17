@@ -37,7 +37,8 @@ namespace TechStoreController.Controllers
         public async Task<ActionResult<ApiResponse<PagedResponse<OrderResponseDto>>>> GetOrders(
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10,
-            [FromQuery] Guid? userId = null)
+            [FromQuery] Guid? userId = null,
+            [FromQuery] string? status = null)
         {
             try
             {
@@ -48,19 +49,17 @@ namespace TechStoreController.Controllers
                 var userRole = JwtHelper.GetUserRole(User);
                 PagedResponse<OrderResponseDto> orders;
 
-                // Staff/Admin can view all orders or filter by userId
-                if ((userRole == "Staff" || userRole == "Admin") && userId.HasValue)
+                if (userRole == "Staff" || userRole == "Admin")
                 {
-                    orders = await _orderService.SearchOrdersByUserIdAsync(userId.Value, pageNumber, pageSize);
+                    if (userId.HasValue)
+                    {
+                        orders = await _orderService.SearchOrdersByUserIdAsync(userId.Value, pageNumber, pageSize);
+                    }
+                    else
+                    {
+                        orders = await _orderService.GetAllOrdersAsync(pageNumber, pageSize, status);
+                    }
                 }
-                // Staff/Admin can view all orders (without userId filter)
-                else if (userRole == "Staff" || userRole == "Admin")
-                {
-                    // For now, return empty or implement GetAllOrdersAsync if needed
-                    // For simplicity, we'll use SearchByUserId with current user
-                    orders = await _orderService.GetOrdersByUserIdAsync(currentUserId.Value, pageNumber, pageSize);
-                }
-                // Customer can only view their own orders
                 else
                 {
                     orders = await _orderService.GetOrdersByUserIdAsync(currentUserId.Value, pageNumber, pageSize);

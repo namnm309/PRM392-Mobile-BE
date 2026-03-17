@@ -7,6 +7,7 @@ namespace DAL.Repositories
     /// </summary>
     public interface IOrderRepository : IRepository<Order>
     {
+        Task<(IEnumerable<Order> Orders, int TotalCount)> GetAllPagedAsync(int pageNumber, int pageSize, string? status = null);
         Task<IEnumerable<Order>> GetByUserIdAsync(Guid userId);
         Task<Order?> GetByIdWithItemsAsync(Guid id);
         Task<Order?> GetByIdWithFullDetailsAsync(Guid id);
