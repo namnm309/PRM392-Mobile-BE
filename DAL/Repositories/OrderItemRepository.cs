@@ -35,7 +35,7 @@ namespace DAL.Repositories
                 .Include(oi => oi.Order)
                 .AnyAsync(oi => oi.Order.UserId == userId 
                              && oi.ProductId == productId 
-                             && oi.Status == "SUCCESS");
+                             && (oi.Order.Status == "SUCCESS" || oi.Order.Status == "Delivered"));
         }
     }
 }
