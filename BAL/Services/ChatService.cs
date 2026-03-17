@@ -104,7 +104,20 @@ namespace BAL.Services
             var systemPrompt = request.SystemPrompt?.Trim();
             if (string.IsNullOrEmpty(systemPrompt))
             {
-                systemPrompt = "Bạn là trợ lý AI của TechStore - cửa hàng công nghệ. Bạn giúp người dùng tìm sản phẩm, so sánh giá, tư vấn mua hàng. Trả lời ngắn gọn bằng tiếng Việt.";
+                systemPrompt = @"Bạn là **TechStore AI** — trợ lý mua sắm thông minh của TechStore, cửa hàng công nghệ hàng đầu.
+
+**Nhiệm vụ:** Tư vấn sản phẩm, so sánh giá, giải đáp thắc mắc và hỗ trợ đặt hàng.
+
+**QUY TẮC FORMAT BẮT BUỘC:**
+• Luôn trả lời bằng tiếng Việt, giọng thân thiện và chuyên nghiệp.
+• Dùng **in đậm** cho tên sản phẩm, thương hiệu, giá tiền và các từ khóa quan trọng.
+• Dùng dấu • (bullet point) để liệt kê danh sách, mỗi mục một dòng.
+• Khi liệt kê sản phẩm, dùng format:
+  • **Tên sản phẩm** (thông số ngắn gọn): **giá đ**
+• Khi so sánh hoặc giải thích chi tiết, chia thành các phần rõ ràng có tiêu đề **in đậm**.
+• KHÔNG dùng bảng, KHÔNG dùng ký tự |, KHÔNG dùng markdown heading (#).
+• Giữ câu trả lời ngắn gọn, dễ đọc trên điện thoại. Mỗi đoạn không quá 3-4 dòng.
+• Kết thúc bằng một câu gợi ý hoặc hỏi thêm nhu cầu của khách hàng.";
             }
 
             var lastUserMessage = GetLastUserMessage(request);
@@ -281,7 +294,7 @@ namespace BAL.Services
                 {
                     var productList = products.Take(maxProducts).ToList();
                     primaryProductId = productList[0].Id;
-                    sb.AppendLine("\nSẢN PHẨM (liệt kê cho user đúng format dưới đây):");
+                    sb.AppendLine("\nSẢN PHẨM HIỆN CÓ:");
                     foreach (var p in productList)
                     {
                         var displayPrice = p.DiscountPrice.HasValue && p.DiscountPrice < p.Price
@@ -289,7 +302,7 @@ namespace BAL.Services
                             : p.Price;
                         sb.AppendLine($"- {p.Name}: {displayPrice:N0}đ");
                     }
-                    sb.AppendLine("\nHãy dùng chính xác dữ liệu trên khi tư vấn. Khi liệt kê sản phẩm cho user, dùng format: - Tên sản phẩm: giá đ (mỗi dòng một sản phẩm, xuống dòng rõ ràng). KHÔNG dùng bảng, KHÔNG dùng ký tự |. Chỉ ghi tên và giá, vừa đủ, dễ đọc. Ưu tiên giá khuyến mãi nếu có, không thì giá gốc.");
+                    sb.AppendLine("\nHãy dùng chính xác dữ liệu trên khi tư vấn. Khi liệt kê sản phẩm cho user, dùng format: • **Tên sản phẩm** (thông số ngắn): **giáđ** (mỗi mục một dòng, dùng bullet •). Ưu tiên giá khuyến mãi nếu có. KHÔNG dùng bảng, KHÔNG dùng ký tự |.");
                 }
                 else if (!hasMatchingProducts && !string.IsNullOrWhiteSpace(userMessage) && IsWebSearchEnabled())
                 {
@@ -299,7 +312,7 @@ namespace BAL.Services
                         sb.AppendLine("\n--- SẢN PHẨM KHÔNG CÓ TRONG DB TECHSTORE ---");
                         sb.AppendLine("Dưới đây là thông tin tìm được từ internet về sản phẩm người dùng hỏi:");
                         sb.AppendLine(webContext);
-                        sb.AppendLine("\nHãy dùng thông tin từ internet trên để tư vấn, so sánh thông số, giá (nếu có), ưu nhược điểm. Trả lời bằng tiếng Việt, format: - Tên: thông tin/giá. Nếu có nhiều nguồn, tổng hợp lại. Cuối cùng gợi ý: TechStore hiện chưa có sản phẩm này, bạn có thể tham khảo các danh mục: " + string.Join(", ", categoryNames) + ".");
+                        sb.AppendLine("\nHãy dùng thông tin từ internet trên để tư vấn, so sánh thông số, giá (nếu có), ưu nhược điểm. Dùng format: • **Tên**: thông tin/giá (mỗi mục một dòng, dùng bullet •, in đậm tên và giá). Nếu có nhiều nguồn, tổng hợp lại. Cuối cùng gợi ý: TechStore hiện chưa có sản phẩm này, bạn có thể tham khảo các danh mục: " + string.Join(", ", categoryNames) + ".");
                     }
                     else
                     {
