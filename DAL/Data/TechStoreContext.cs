@@ -33,8 +33,9 @@ namespace DAL.Data
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
-        public DbSet<Comment> Comments { get; set; }
-        public DbSet<CommentReply> CommentReplies { get; set; }
+        public DbSet<Review> Reviews { get; set; }
+        public DbSet<ReviewReply> ReviewReplies { get; set; }
+        public DbSet<ProductComment> ProductComments { get; set; }
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<VoucherUsage> VoucherUsages { get; set; }
         public DbSet<WishlistItem> WishlistItems { get; set; }
@@ -111,33 +112,52 @@ namespace DAL.Data
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // Comment configuration - Unique constraint: (userId, productId)
-            modelBuilder.Entity<Comment>(entity =>
+            // Review configuration - Unique constraint: (userId, productId)
+            modelBuilder.Entity<Review>(entity =>
             {
-                entity.HasIndex(c => c.ProductId);
-                entity.HasIndex(c => new { c.UserId, c.ProductId }).IsUnique();
-                entity.HasOne(c => c.User)
+                entity.HasIndex(r => r.ProductId);
+                entity.HasIndex(r => new { r.UserId, r.ProductId }).IsUnique();
+                entity.HasOne(r => r.User)
                       .WithMany()
-                      .HasForeignKey(c => c.UserId)
+                      .HasForeignKey(r => r.UserId)
                       .OnDelete(DeleteBehavior.Restrict);
-                entity.HasOne(c => c.Product)
+                entity.HasOne(r => r.Product)
                       .WithMany()
-                      .HasForeignKey(c => c.ProductId)
+                      .HasForeignKey(r => r.ProductId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // CommentReply configuration - Unique constraint: commentId (one reply per comment)
-            modelBuilder.Entity<CommentReply>(entity =>
+            // ReviewReply configuration - Unique constraint: reviewId (one reply per review)
+            modelBuilder.Entity<ReviewReply>(entity =>
             {
-                entity.HasIndex(cr => cr.CommentId).IsUnique();
-                entity.HasOne(cr => cr.Comment)
-                      .WithOne(c => c.Reply)
-                      .HasForeignKey<CommentReply>(cr => cr.CommentId)
+                entity.HasIndex(rr => rr.ReviewId).IsUnique();
+                entity.HasOne(rr => rr.Review)
+                      .WithOne(r => r.Reply)
+                      .HasForeignKey<ReviewReply>(rr => rr.ReviewId)
                       .OnDelete(DeleteBehavior.Cascade);
-                entity.HasOne(cr => cr.Staff)
+                entity.HasOne(rr => rr.Staff)
                       .WithMany()
-                      .HasForeignKey(cr => cr.StaffId)
+                      .HasForeignKey(rr => rr.StaffId)
                       .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ProductComment configuration - self-referencing for nested replies
+            modelBuilder.Entity<ProductComment>(entity =>
+            {
+                entity.HasIndex(pc => pc.ProductId);
+                entity.HasIndex(pc => pc.ParentId);
+                entity.HasOne(pc => pc.User)
+                      .WithMany()
+                      .HasForeignKey(pc => pc.UserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(pc => pc.Product)
+                      .WithMany()
+                      .HasForeignKey(pc => pc.ProductId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(pc => pc.Parent)
+                      .WithMany(pc => pc.Replies)
+                      .HasForeignKey(pc => pc.ParentId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Voucher configuration

@@ -1,9 +1,6 @@
-namespace BAL.DTOs.Comment
+namespace BAL.DTOs.Review
 {
-    /// <summary>
-    /// Comment response DTO
-    /// </summary>
-    public class CommentResponseDto
+    public class ReviewResponseDto
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }
@@ -12,7 +9,7 @@ namespace BAL.DTOs.Comment
         public Guid ProductId { get; set; }
         public int Rating { get; set; }
         public string Content { get; set; } = string.Empty;
-        public CommentReplyResponseDto? Reply { get; set; }
+        public ReviewReplyResponseDto? Reply { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

@@ -76,8 +76,9 @@ namespace TechStoreController
             builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();
             builder.Services.AddScoped<IOrderRepository, OrderRepository>();
             builder.Services.AddScoped<IOrderItemRepository, OrderItemRepository>();
-            builder.Services.AddScoped<ICommentRepository, CommentRepository>();
-            builder.Services.AddScoped<ICommentReplyRepository, CommentReplyRepository>();
+            builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+            builder.Services.AddScoped<IReviewReplyRepository, ReviewReplyRepository>();
+            builder.Services.AddScoped<IProductCommentRepository, ProductCommentRepository>();
             builder.Services.AddScoped<IVoucherRepository, VoucherRepository>();
             builder.Services.AddScoped<IVoucherUsageRepository, VoucherUsageRepository>();
             builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
@@ -96,7 +97,8 @@ namespace TechStoreController
             builder.Services.AddScoped<IOrderService, OrderService>();
             builder.Services.AddScoped<IAddressService, AddressService>();
             builder.Services.AddScoped<ICartService, CartService>();
-            builder.Services.AddScoped<ICommentService, CommentService>();
+            builder.Services.AddScoped<IReviewService, ReviewService>();
+            builder.Services.AddScoped<IProductCommentService, ProductCommentService>();
             builder.Services.AddScoped<IVoucherService, VoucherService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
             builder.Services.AddScoped<IWishlistService, WishlistService>();
