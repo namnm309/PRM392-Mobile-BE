@@ -1,11 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace BAL.DTOs.Comment
+namespace BAL.DTOs.Review
 {
-    /// <summary>
-    /// DTO for creating a comment
-    /// </summary>
-    public class CreateCommentRequestDto
+    public class CreateReviewRequestDto
     {
         [Required(ErrorMessage = "Product ID is required")]
         public Guid ProductId { get; set; }

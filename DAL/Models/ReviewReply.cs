@@ -3,19 +3,16 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DAL.Models
 {
-    /// <summary>
-    /// CommentReply entity - Reply của staff cho comment
-    /// </summary>
-    [Table("tbl_comment_replies")]
-    public class CommentReply
+    [Table("tbl_review_replies")]
+    public class ReviewReply
     {
         [Key]
         [Column("id")]
         public Guid Id { get; set; }
 
         [Required]
-        [Column("comment_id")]
-        public Guid CommentId { get; set; }
+        [Column("review_id")]
+        public Guid ReviewId { get; set; }
 
         [Required]
         [Column("staff_id")]
@@ -31,9 +28,8 @@ namespace DAL.Models
         [Column("updated_at")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation Properties
-        [ForeignKey("CommentId")]
-        public virtual Comment Comment { get; set; } = null!;
+        [ForeignKey("ReviewId")]
+        public virtual Review Review { get; set; } = null!;
 
         [ForeignKey("StaffId")]
         public virtual User Staff { get; set; } = null!;

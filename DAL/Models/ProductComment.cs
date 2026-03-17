@@ -3,11 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DAL.Models
 {
-    /// <summary>
-    /// Comment entity - Bình luận của user về sản phẩm
-    /// </summary>
-    [Table("tbl_comments")]
-    public class Comment
+    [Table("tbl_product_comments")]
+    public class ProductComment
     {
         [Key]
         [Column("id")]
@@ -21,9 +18,8 @@ namespace DAL.Models
         [Column("product_id")]
         public Guid ProductId { get; set; }
 
-        [Required]
-        [Column("rating")]
-        public int Rating { get; set; } // 1-5 stars
+        [Column("parent_id")]
+        public Guid? ParentId { get; set; }
 
         [Required]
         [Column("content", TypeName = "text")]
@@ -35,13 +31,15 @@ namespace DAL.Models
         [Column("updated_at")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation Properties
         [ForeignKey("UserId")]
         public virtual User User { get; set; } = null!;
 
         [ForeignKey("ProductId")]
         public virtual Product Product { get; set; } = null!;
 
-        public virtual CommentReply? Reply { get; set; }
+        [ForeignKey("ParentId")]
+        public virtual ProductComment? Parent { get; set; }
+
+        public virtual ICollection<ProductComment> Replies { get; set; } = new List<ProductComment>();
     }
 }
