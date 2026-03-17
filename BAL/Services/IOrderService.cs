@@ -9,6 +9,7 @@ namespace BAL.Services
     public interface IOrderService
     {
         Task<OrderResponseDto?> GetOrderByIdAsync(Guid id);
+        Task<PagedResponse<OrderResponseDto>> GetAllOrdersAsync(int pageNumber, int pageSize, string? status = null);
         Task<PagedResponse<OrderResponseDto>> GetOrdersByUserIdAsync(Guid userId, int pageNumber, int pageSize);
         Task<PagedResponse<OrderResponseDto>> SearchOrdersByOrderIdAsync(string orderIdSearch, int pageNumber, int pageSize);
         Task<PagedResponse<OrderResponseDto>> SearchOrdersByUserIdAsync(Guid userId, int pageNumber, int pageSize);
