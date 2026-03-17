@@ -62,6 +62,7 @@ namespace BAL.Services
                 Description = request.Description,
                 ImageUrl = request.ImageUrl,
                 IsActive = request.IsActive,
+                IsHot = request.IsHot,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -102,6 +103,7 @@ namespace BAL.Services
                 Description = item.Description,
                 ImageUrl = item.ImageUrl,
                 IsActive = item.IsActive,
+                IsHot = item.IsHot,
                 CreatedAt = now,
                 UpdatedAt = now
             }).ToList();
@@ -134,6 +136,9 @@ namespace BAL.Services
 
             if (request.ImageUrl != null)
                 brand.ImageUrl = request.ImageUrl;
+
+            if (request.IsHot.HasValue)
+                brand.IsHot = request.IsHot.Value;
 
             if (request.IsActive.HasValue)
             {
@@ -235,6 +240,7 @@ namespace BAL.Services
                 Description = brand.Description,
                 ImageUrl = brand.ImageUrl,
                 IsActive = brand.IsActive,
+                IsHot = brand.IsHot,
                 CreatedAt = brand.CreatedAt,
                 UpdatedAt = brand.UpdatedAt
             };

@@ -10,6 +10,7 @@ namespace BAL.DTOs.Brand
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
         public bool IsActive { get; set; }
+        public bool IsHot { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

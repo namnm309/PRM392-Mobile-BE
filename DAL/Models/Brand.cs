@@ -29,6 +29,9 @@ namespace DAL.Models
         [Column("is_active")]
         public bool IsActive { get; set; } = true;
 
+        [Column("is_hot")]
+        public bool IsHot { get; set; } = false;
+
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

@@ -17,5 +17,7 @@ namespace BAL.DTOs.Brand
         public string? ImageUrl { get; set; }
 
         public bool IsActive { get; set; } = true;
+
+        public bool IsHot { get; set; } = false;
     }
 }
