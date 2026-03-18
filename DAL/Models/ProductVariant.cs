@@ -37,6 +37,10 @@ namespace DAL.Models
         [Column("storage_gb")]
         public int? StorageGb { get; set; }
 
+        [Column("image_url")]
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
         [Required]
         [Column("price", TypeName = "decimal(18,2)")]
         public decimal Price { get; set; }

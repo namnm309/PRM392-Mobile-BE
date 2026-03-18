@@ -48,6 +48,7 @@ namespace BAL.Services
                 ColorHex = string.IsNullOrWhiteSpace(request.ColorHex) ? null : request.ColorHex.Trim(),
                 RamGb = request.RamGb,
                 StorageGb = request.StorageGb,
+                ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim(),
                 Price = request.Price,
                 DiscountPrice = request.DiscountPrice,
                 Stock = request.Stock,
@@ -86,6 +87,8 @@ namespace BAL.Services
                 entity.RamGb = request.RamGb.Value;
             if (request.StorageGb.HasValue)
                 entity.StorageGb = request.StorageGb.Value;
+            if (request.ImageUrl != null)
+                entity.ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim();
             if (request.Price.HasValue)
                 entity.Price = request.Price.Value;
             if (request.DiscountPrice.HasValue)
@@ -130,6 +133,7 @@ namespace BAL.Services
                 ColorHex = v.ColorHex,
                 RamGb = v.RamGb,
                 StorageGb = v.StorageGb,
+                ImageUrl = v.ImageUrl,
                 Price = v.Price,
                 DiscountPrice = v.DiscountPrice,
                 Stock = v.Stock,

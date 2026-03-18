@@ -444,6 +444,7 @@ namespace BAL.Services
                         ColorHex = v.ColorHex,
                         RamGb = v.RamGb,
                         StorageGb = v.StorageGb,
+                        ImageUrl = v.ImageUrl,
                         Price = v.Price,
                         DiscountPrice = v.DiscountPrice,
                         Stock = v.Stock,
