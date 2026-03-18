@@ -430,6 +430,28 @@ namespace BAL.Services
                 IsActive = product.IsActive,
                 IsOnSale = product.IsOnSale,
                 NoVoucherTag = product.NoVoucherTag,
+                HasVariants = product.Variants != null && product.Variants.Count > 0,
+                Variants = product.Variants?
+                    .OrderBy(v => v.DisplayOrder)
+                    .ThenBy(v => v.CreatedAt)
+                    .Select(v => new ProductVariantResponseDto
+                    {
+                        Id = v.Id,
+                        ProductId = v.ProductId,
+                        Sku = v.Sku,
+                        VariantName = v.VariantName,
+                        ColorName = v.ColorName,
+                        ColorHex = v.ColorHex,
+                        RamGb = v.RamGb,
+                        StorageGb = v.StorageGb,
+                        Price = v.Price,
+                        DiscountPrice = v.DiscountPrice,
+                        Stock = v.Stock,
+                        IsActive = v.IsActive,
+                        DisplayOrder = v.DisplayOrder,
+                        CreatedAt = v.CreatedAt,
+                        UpdatedAt = v.UpdatedAt
+                    }).ToList() ?? new List<ProductVariantResponseDto>(),
                 ProductImages = product.ProductImages?
                     .OrderBy(pi => pi.DisplayOrder)
                     .ThenBy(pi => pi.CreatedAt)

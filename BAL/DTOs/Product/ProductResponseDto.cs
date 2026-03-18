@@ -23,6 +23,8 @@ namespace BAL.DTOs.Product
         public bool IsActive { get; set; }
         public bool IsOnSale { get; set; }
         public bool NoVoucherTag { get; set; }
+        public bool HasVariants { get; set; }
+        public List<ProductVariantResponseDto> Variants { get; set; } = new();
         public List<ProductImageResponseDto> ProductImages { get; set; } = new();
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }

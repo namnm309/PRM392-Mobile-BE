@@ -21,6 +21,9 @@ namespace DAL.Models
         [Column("product_id")]
         public Guid ProductId { get; set; }
 
+        [Column("variant_id")]
+        public Guid? VariantId { get; set; }
+
         [Required]
         [Column("quantity")]
         public int Quantity { get; set; } = 1;
@@ -41,5 +44,8 @@ namespace DAL.Models
 
         [ForeignKey("ProductId")]
         public virtual Product Product { get; set; } = null!;
+
+        [ForeignKey("VariantId")]
+        public virtual ProductVariant? Variant { get; set; }
     }
 }

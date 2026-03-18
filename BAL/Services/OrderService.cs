@@ -152,6 +152,7 @@ namespace BAL.Services
             var orderItems = cartItems.Select(item => new CreateOrderItemRequestDto
             {
                 ProductId = item.ProductId,
+                    VariantId = item.VariantId,
                 Quantity = item.Quantity
             }).ToList();
 
@@ -211,16 +212,33 @@ namespace BAL.Services
                         throw new InvalidOperationException($"Product {product.Name} is not active");
                     }
 
-                    if (product.Stock < itemRequest.Quantity)
+                    ProductVariant? variant = null;
+                    if (itemRequest.VariantId.HasValue)
                     {
-                        throw new InvalidOperationException($"Insufficient stock for product {product.Name}. Available: {product.Stock}");
+                        variant = await _context.ProductVariants
+                            .FirstOrDefaultAsync(v => v.Id == itemRequest.VariantId.Value && v.ProductId == itemRequest.ProductId);
+                        if (variant == null)
+                            throw new InvalidOperationException($"Variant {itemRequest.VariantId} not found for product {product.Name}");
+                        if (!variant.IsActive)
+                            throw new InvalidOperationException($"Variant is not active for product {product.Name}");
+                        if (variant.Stock < itemRequest.Quantity)
+                            throw new InvalidOperationException($"Insufficient stock for variant of product {product.Name}. Available: {variant.Stock}");
+                    }
+                    else
+                    {
+                        if (product.Stock < itemRequest.Quantity)
+                            throw new InvalidOperationException($"Insufficient stock for product {product.Name}. Available: {product.Stock}");
                     }
 
-                    var unitPrice = product.DiscountPrice ?? product.Price;
+                    var unitPrice = variant != null
+                        ? (variant.DiscountPrice ?? variant.Price)
+                        : (product.DiscountPrice ?? product.Price);
                     subtotal += unitPrice * itemRequest.Quantity;
 
                     // Determine if this item is eligible for voucher discount
-                    var isOnSale = product.IsOnSale || (product.DiscountPrice.HasValue && product.DiscountPrice < product.Price);
+                    var isOnSale = product.IsOnSale
+                        || (variant != null && variant.DiscountPrice.HasValue && variant.DiscountPrice < variant.Price)
+                        || (variant == null && product.DiscountPrice.HasValue && product.DiscountPrice < product.Price);
                     var isEligibleForVoucher = !isOnSale && !product.NoVoucherTag;
                     if (isEligibleForVoucher)
                     {
@@ -231,6 +249,7 @@ namespace BAL.Services
                     {
                         Id = Guid.NewGuid(),
                         ProductId = itemRequest.ProductId,
+                        VariantId = itemRequest.VariantId,
                         Quantity = itemRequest.Quantity,
                         UnitPrice = unitPrice,
                         Status = "Pending",
@@ -240,10 +259,20 @@ namespace BAL.Services
 
                     orderItems.Add(orderItem);
 
-                    // Update product stock
-                    product.Stock -= itemRequest.Quantity;
-                    product.UpdatedAt = DateTime.UtcNow;
-                    await _productRepository.UpdateAsync(product);
+                    // Update stock (variant-first)
+                    if (variant != null)
+                    {
+                        variant.Stock -= itemRequest.Quantity;
+                        variant.UpdatedAt = DateTime.UtcNow;
+                        _context.ProductVariants.Update(variant);
+                        await _context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        product.Stock -= itemRequest.Quantity;
+                        product.UpdatedAt = DateTime.UtcNow;
+                        await _productRepository.UpdateAsync(product);
+                    }
                 }
 
                 // Business rule: Apply voucher if provided
@@ -436,12 +465,26 @@ namespace BAL.Services
             var orderItems = await _orderItemRepository.FindAsync(oi => oi.OrderId == orderId);
             foreach (var item in orderItems)
             {
-                var product = await _productRepository.GetByIdAsync(item.ProductId);
-                if (product != null)
+                if (item.VariantId.HasValue)
                 {
-                    product.Stock += item.Quantity;
-                    product.UpdatedAt = DateTime.UtcNow;
-                    await _productRepository.UpdateAsync(product);
+                    var variant = await _context.ProductVariants.FirstOrDefaultAsync(v => v.Id == item.VariantId.Value);
+                    if (variant != null)
+                    {
+                        variant.Stock += item.Quantity;
+                        variant.UpdatedAt = DateTime.UtcNow;
+                        _context.ProductVariants.Update(variant);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                else
+                {
+                    var product = await _productRepository.GetByIdAsync(item.ProductId);
+                    if (product != null)
+                    {
+                        product.Stock += item.Quantity;
+                        product.UpdatedAt = DateTime.UtcNow;
+                        await _productRepository.UpdateAsync(product);
+                    }
                 }
             }
 
@@ -470,12 +513,26 @@ namespace BAL.Services
                 var orderItems = await _orderItemRepository.FindAsync(oi => oi.OrderId == orderId);
                 foreach (var item in orderItems)
                 {
-                    var product = await _productRepository.GetByIdAsync(item.ProductId);
-                    if (product != null)
+                    if (item.VariantId.HasValue)
                     {
-                        product.Stock += item.Quantity;
-                        product.UpdatedAt = DateTime.UtcNow;
-                        await _productRepository.UpdateAsync(product);
+                        var variant = await _context.ProductVariants.FirstOrDefaultAsync(v => v.Id == item.VariantId.Value);
+                        if (variant != null)
+                        {
+                            variant.Stock += item.Quantity;
+                            variant.UpdatedAt = DateTime.UtcNow;
+                            _context.ProductVariants.Update(variant);
+                            await _context.SaveChangesAsync();
+                        }
+                    }
+                    else
+                    {
+                        var product = await _productRepository.GetByIdAsync(item.ProductId);
+                        if (product != null)
+                        {
+                            product.Stock += item.Quantity;
+                            product.UpdatedAt = DateTime.UtcNow;
+                            await _productRepository.UpdateAsync(product);
+                        }
                     }
                 }
             }
@@ -732,6 +789,11 @@ namespace BAL.Services
                     Id = oi.Id,
                     OrderId = oi.OrderId,
                     ProductId = oi.ProductId,
+                    VariantId = oi.VariantId,
+                    VariantColorName = oi.Variant?.ColorName,
+                    VariantColorHex = oi.Variant?.ColorHex,
+                    VariantRamGb = oi.Variant?.RamGb,
+                    VariantStorageGb = oi.Variant?.StorageGb,
                     Product = oi.Product != null ? new ProductResponseDto
                     {
                         Id = oi.Product.Id,

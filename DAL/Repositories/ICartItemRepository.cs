@@ -8,7 +8,7 @@ namespace DAL.Repositories
     public interface ICartItemRepository : IRepository<CartItem>
     {
         Task<IEnumerable<CartItem>> GetByUserIdAsync(Guid userId);
-        Task<CartItem?> GetByUserIdAndProductIdAsync(Guid userId, Guid productId);
+        Task<CartItem?> GetByUserIdAndProductIdAsync(Guid userId, Guid productId, Guid? variantId);
         Task<CartItem?> GetByIdWithProductAsync(Guid id);
         Task<bool> ClearCartByUserIdAsync(Guid userId);
         Task<bool> DeleteCartItemsByIdsAsync(Guid userId, List<Guid> cartItemIds);

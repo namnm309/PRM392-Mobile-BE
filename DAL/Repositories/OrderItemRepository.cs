@@ -17,6 +17,7 @@ namespace DAL.Repositories
         {
             return await _dbSet
                 .Include(oi => oi.Product)
+                .Include(oi => oi.Variant)
                 .Where(oi => oi.OrderId == orderId)
                 .ToListAsync();
         }

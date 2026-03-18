@@ -104,18 +104,17 @@ namespace BAL.Services
             var systemPrompt = request.SystemPrompt?.Trim();
             if (string.IsNullOrEmpty(systemPrompt))
             {
-                systemPrompt = @"Bạn là **TechStore AI** — trợ lý mua sắm thông minh của TechStore, cửa hàng công nghệ hàng đầu.
+                systemPrompt = @"Bạn là TechStore AI — trợ lý mua sắm thông minh của TechStore, cửa hàng công nghệ hàng đầu.
 
-**Nhiệm vụ:** Tư vấn sản phẩm, so sánh giá, giải đáp thắc mắc và hỗ trợ đặt hàng.
+Nhiệm vụ: Tư vấn sản phẩm, so sánh giá, giải đáp thắc mắc và hỗ trợ đặt hàng.
 
-**QUY TẮC FORMAT BẮT BUỘC:**
+QUY TẮC FORMAT BẮT BUỘC:
 • Luôn trả lời bằng tiếng Việt, giọng thân thiện và chuyên nghiệp.
-• Dùng **in đậm** cho tên sản phẩm, thương hiệu, giá tiền và các từ khóa quan trọng.
 • Dùng dấu • (bullet point) để liệt kê danh sách, mỗi mục một dòng.
 • Khi liệt kê sản phẩm, dùng format:
-  • **Tên sản phẩm** (thông số ngắn gọn): **giá đ**
-• Khi so sánh hoặc giải thích chi tiết, chia thành các phần rõ ràng có tiêu đề **in đậm**.
-• KHÔNG dùng bảng, KHÔNG dùng ký tự |, KHÔNG dùng markdown heading (#).
+  • Ten san pham (thong so ngan gon): gia đ
+• Khi so sánh hoặc giải thích chi tiết, chia thành các phần rõ ràng có tiêu đề ngắn gọn.
+• KHÔNG dùng markdown (KHÔNG dùng ký tự *, **, _, `, #).
 • Giữ câu trả lời ngắn gọn, dễ đọc trên điện thoại. Mỗi đoạn không quá 3-4 dòng.
 • Kết thúc bằng một câu gợi ý hoặc hỏi thêm nhu cầu của khách hàng.";
             }
@@ -224,6 +223,7 @@ namespace BAL.Services
                 ?? throw new InvalidOperationException("Không thể đọc phản hồi từ Mega LLM");
 
             var text = apiResponse.Choices?.FirstOrDefault()?.Message?.Content ?? string.Empty;
+            text = SanitizeChatOutput(text);
             var usage = apiResponse.Usage != null
                 ? new ChatUsageDto
                 {
@@ -234,6 +234,22 @@ namespace BAL.Services
                 : null;
 
             return new ChatResponseDto { Content = text, Usage = usage, PrimaryProductId = primaryProductId };
+        }
+
+        private static string SanitizeChatOutput(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+
+            // Mobile FE currently renders plain text; strip common markdown markers to avoid showing '*', '**', '`', '#', etc.
+            var s = text;
+            s = Regex.Replace(s, @"\*\*(.*?)\*\*", "$1"); // **bold**
+            s = Regex.Replace(s, @"\*(.*?)\*", "$1");     // *italic*
+            s = Regex.Replace(s, @"__(.*?)__", "$1");     // __bold__
+            s = Regex.Replace(s, @"_(.*?)_", "$1");       // _italic_
+            s = Regex.Replace(s, @"`{1,3}", "");          // `code` / ``` fences
+            s = Regex.Replace(s, @"(?m)^\s{0,3}#{1,6}\s*", ""); // headings
+
+            return s.Trim();
         }
 
         private static string? GetLastUserMessage(ChatRequestDto request)
@@ -302,7 +318,7 @@ namespace BAL.Services
                             : p.Price;
                         sb.AppendLine($"- {p.Name}: {displayPrice:N0}đ");
                     }
-                    sb.AppendLine("\nHãy dùng chính xác dữ liệu trên khi tư vấn. Khi liệt kê sản phẩm cho user, dùng format: • **Tên sản phẩm** (thông số ngắn): **giáđ** (mỗi mục một dòng, dùng bullet •). Ưu tiên giá khuyến mãi nếu có. KHÔNG dùng bảng, KHÔNG dùng ký tự |.");
+                    sb.AppendLine("\nHãy dùng chính xác dữ liệu trên khi tư vấn. Khi liệt kê sản phẩm cho user, dùng format: • Ten san pham (thong so ngan): giađ (mỗi mục một dòng, dùng bullet •). Ưu tiên giá khuyến mãi nếu có. KHÔNG dùng markdown (KHÔNG dùng ký tự *, **, _, `, #). KHÔNG dùng bảng, KHÔNG dùng ký tự |.");
                 }
                 else if (!hasMatchingProducts && !string.IsNullOrWhiteSpace(userMessage) && IsWebSearchEnabled())
                 {
@@ -312,7 +328,7 @@ namespace BAL.Services
                         sb.AppendLine("\n--- SẢN PHẨM KHÔNG CÓ TRONG DB TECHSTORE ---");
                         sb.AppendLine("Dưới đây là thông tin tìm được từ internet về sản phẩm người dùng hỏi:");
                         sb.AppendLine(webContext);
-                        sb.AppendLine("\nHãy dùng thông tin từ internet trên để tư vấn, so sánh thông số, giá (nếu có), ưu nhược điểm. Dùng format: • **Tên**: thông tin/giá (mỗi mục một dòng, dùng bullet •, in đậm tên và giá). Nếu có nhiều nguồn, tổng hợp lại. Cuối cùng gợi ý: TechStore hiện chưa có sản phẩm này, bạn có thể tham khảo các danh mục: " + string.Join(", ", categoryNames) + ".");
+                        sb.AppendLine("\nHãy dùng thông tin từ internet trên để tư vấn, so sánh thông số, giá (nếu có), ưu nhược điểm. Dùng format: • Ten: thong tin/gia (mỗi mục một dòng, dùng bullet •). KHÔNG dùng markdown (KHÔNG dùng ký tự *, **, _, `, #). Nếu có nhiều nguồn, tổng hợp lại. Cuối cùng gợi ý: TechStore hiện chưa có sản phẩm này, bạn có thể tham khảo các danh mục: " + string.Join(", ", categoryNames) + ".");
                     }
                     else
                     {

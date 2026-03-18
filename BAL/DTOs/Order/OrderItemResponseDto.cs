@@ -10,6 +10,11 @@ namespace BAL.DTOs.Order
         public Guid Id { get; set; }
         public Guid OrderId { get; set; }
         public Guid ProductId { get; set; }
+        public Guid? VariantId { get; set; }
+        public string? VariantColorName { get; set; }
+        public string? VariantColorHex { get; set; }
+        public int? VariantRamGb { get; set; }
+        public int? VariantStorageGb { get; set; }
         public ProductResponseDto? Product { get; set; }
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
