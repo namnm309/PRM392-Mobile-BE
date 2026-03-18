@@ -27,6 +27,8 @@ namespace DAL.Repositories
             var orders = await query
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Product)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Variant)
                 .Include(o => o.Address)
                 .Include(o => o.Voucher)
                 .Include(o => o.User)
@@ -42,6 +44,7 @@ namespace DAL.Repositories
         {
             return await _dbSet
                 .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Variant)
                 .Where(o => o.UserId == userId)
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
@@ -52,6 +55,8 @@ namespace DAL.Repositories
             return await _dbSet
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Product)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Variant)
                 .Include(o => o.Address)
                 .Include(o => o.Voucher)
                 .FirstOrDefaultAsync(o => o.Id == id);
@@ -63,6 +68,8 @@ namespace DAL.Repositories
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Product)
                         .ThenInclude(p => p.ProductImages)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Variant)
                 .Include(o => o.Address)
                 .Include(o => o.Voucher)
                 .Include(o => o.User)
@@ -90,6 +97,8 @@ namespace DAL.Repositories
             var orders = await query
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Product)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Variant)
                 .Include(o => o.Address)
                 .Include(o => o.Voucher)
                 .Include(o => o.User)
@@ -110,6 +119,8 @@ namespace DAL.Repositories
             var orders = await query
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Product)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Variant)
                 .Include(o => o.Address)
                 .Include(o => o.Voucher)
                 .OrderByDescending(o => o.CreatedAt)
@@ -124,6 +135,7 @@ namespace DAL.Repositories
         {
             return await _dbSet
                 .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Variant)
                 .Where(o => o.CreatedAt >= startDate && o.CreatedAt <= endDate)
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();

@@ -39,6 +39,7 @@ namespace DAL.Repositories
                 .Include(p => p.Category)
                 .Include(p => p.Brand)
                 .Include(p => p.ProductImages.OrderBy(pi => pi.DisplayOrder))
+                .Include(p => p.Variants.OrderBy(v => v.DisplayOrder))
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
 
@@ -64,6 +65,7 @@ namespace DAL.Repositories
                 .Include(p => p.Category)
                 .Include(p => p.Brand)
                 .Include(p => p.ProductImages.OrderBy(pi => pi.DisplayOrder))
+                .Include(p => p.Variants.OrderBy(v => v.DisplayOrder))
                 .OrderBy(p => p.Name)
                 .ToListAsync();
         }
@@ -79,6 +81,7 @@ namespace DAL.Repositories
                 .Include(p => p.Category)
                 .Include(p => p.Brand)
                 .Include(p => p.ProductImages.OrderBy(pi => pi.DisplayOrder))
+                .Include(p => p.Variants.OrderBy(v => v.DisplayOrder))
                 .OrderBy(p => p.Name)
                 .ToListAsync();
         }
@@ -94,6 +97,7 @@ namespace DAL.Repositories
                 .Include(p => p.Category)
                 .Include(p => p.Brand)
                 .Include(p => p.ProductImages.OrderBy(pi => pi.DisplayOrder))
+                .Include(p => p.Variants.OrderBy(v => v.DisplayOrder))
                 .OrderBy(p => p.Name)
                 .ToListAsync();
         }
@@ -127,6 +131,7 @@ namespace DAL.Repositories
                 .Include(p => p.Category)
                 .Include(p => p.Brand)
                 .Include(p => p.ProductImages.OrderBy(pi => pi.DisplayOrder))
+                .Include(p => p.Variants.OrderBy(v => v.DisplayOrder))
                 .Take(limit)
                 .ToListAsync();
         }

@@ -42,6 +42,7 @@ namespace DAL.Data
         public DbSet<MembershipTier> MembershipTiers { get; set; }
         public DbSet<PointTransaction> PointTransactions { get; set; }
         public DbSet<LinkedAccount> LinkedAccounts { get; set; }    
+        public DbSet<ProductVariant> ProductVariants { get; set; }
 
 
 
@@ -71,7 +72,7 @@ namespace DAL.Data
             // CartItem configuration
             modelBuilder.Entity<CartItem>(entity =>
             {
-                entity.HasIndex(c => new { c.UserId, c.ProductId });
+                entity.HasIndex(c => new { c.UserId, c.ProductId, c.VariantId });
                 entity.HasOne(c => c.User)
                       .WithMany()
                       .HasForeignKey(c => c.UserId)
@@ -80,6 +81,12 @@ namespace DAL.Data
                       .WithMany(p => p.CartItems)
                       .HasForeignKey(c => c.ProductId)
                       .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(c => c.VariantId);
+                entity.HasOne(c => c.Variant)
+                      .WithMany()
+                      .HasForeignKey(c => c.VariantId)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             // Order configuration
@@ -102,6 +109,7 @@ namespace DAL.Data
             {
                 entity.HasIndex(oi => oi.OrderId);
                 entity.HasIndex(oi => new { oi.ProductId, oi.Status });
+                entity.HasIndex(oi => oi.VariantId);
                 entity.HasOne(oi => oi.Order)
                       .WithMany(o => o.OrderItems)
                       .HasForeignKey(oi => oi.OrderId)
@@ -110,6 +118,11 @@ namespace DAL.Data
                       .WithMany()
                       .HasForeignKey(oi => oi.ProductId)
                       .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(oi => oi.Variant)
+                      .WithMany()
+                      .HasForeignKey(oi => oi.VariantId)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             // Review configuration - Unique constraint: (userId, productId)
@@ -228,6 +241,23 @@ namespace DAL.Data
                       .WithMany(b => b.Products)
                       .HasForeignKey(p => p.BrandId)
                       .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // ProductVariant configuration
+            modelBuilder.Entity<ProductVariant>(entity =>
+            {
+                entity.HasIndex(v => v.ProductId);
+                entity.HasIndex(v => new { v.ProductId, v.IsActive });
+                entity.HasIndex(v => new { v.ProductId, v.DisplayOrder });
+
+                entity.HasOne(v => v.Product)
+                      .WithMany(p => p.Variants)
+                      .HasForeignKey(v => v.ProductId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                // Uniqueness constraints (best-effort; allows nulls on spec fields)
+                entity.HasIndex(v => new { v.ProductId, v.Sku }).IsUnique();
+                entity.HasIndex(v => new { v.ProductId, v.ColorName, v.RamGb, v.StorageGb }).IsUnique();
             });
 
             // ProductImage configuration

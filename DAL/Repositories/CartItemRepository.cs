@@ -17,22 +17,25 @@ namespace DAL.Repositories
         {
             return await _dbSet
                 .Include(c => c.Product)
+                .Include(c => c.Variant)
                 .Where(c => c.UserId == userId)
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
         }
 
-        public async Task<CartItem?> GetByUserIdAndProductIdAsync(Guid userId, Guid productId)
+        public async Task<CartItem?> GetByUserIdAndProductIdAsync(Guid userId, Guid productId, Guid? variantId)
         {
             return await _dbSet
                 .Include(c => c.Product)
-                .FirstOrDefaultAsync(c => c.UserId == userId && c.ProductId == productId);
+                .Include(c => c.Variant)
+                .FirstOrDefaultAsync(c => c.UserId == userId && c.ProductId == productId && c.VariantId == variantId);
         }
 
         public async Task<CartItem?> GetByIdWithProductAsync(Guid id)
         {
             return await _dbSet
                 .Include(c => c.Product)
+                .Include(c => c.Variant)
                 .FirstOrDefaultAsync(c => c.Id == id);
         }
 

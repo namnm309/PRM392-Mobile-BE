@@ -69,5 +69,6 @@ namespace DAL.Models
 
         public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
         public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
+        public virtual ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
     }
 }

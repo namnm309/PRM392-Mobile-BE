@@ -7,10 +7,15 @@ namespace BAL.DTOs.Cart
     {
         public Guid Id { get; set; }
         public Guid ProductId { get; set; }
+        public Guid? VariantId { get; set; }
         public string ProductName { get; set; } = string.Empty;
         public decimal ProductPrice { get; set; }
         public decimal? ProductDiscountPrice { get; set; }
         public string? ProductImageUrl { get; set; }
+        public string? VariantColorName { get; set; }
+        public string? VariantColorHex { get; set; }
+        public int? VariantRamGb { get; set; }
+        public int? VariantStorageGb { get; set; }
         public int Quantity { get; set; }
         public bool IsAvailable { get; set; }
         public int MaxQuantity { get; set; }

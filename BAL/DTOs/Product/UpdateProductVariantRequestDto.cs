@@ -1,0 +1,35 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace BAL.DTOs.Product
+{
+    public class UpdateProductVariantRequestDto
+    {
+        [MaxLength(100)]
+        public string? Sku { get; set; }
+
+        [MaxLength(200)]
+        public string? VariantName { get; set; }
+
+        [MaxLength(100)]
+        public string? ColorName { get; set; }
+
+        [MaxLength(20)]
+        public string? ColorHex { get; set; }
+
+        public int? RamGb { get; set; }
+        public int? StorageGb { get; set; }
+
+        [Range(0, double.MaxValue, ErrorMessage = "Price must be greater than or equal to 0")]
+        public decimal? Price { get; set; }
+
+        [Range(0, double.MaxValue, ErrorMessage = "Discount price must be greater than or equal to 0")]
+        public decimal? DiscountPrice { get; set; }
+
+        [Range(0, int.MaxValue, ErrorMessage = "Stock must be greater than or equal to 0")]
+        public int? Stock { get; set; }
+
+        public bool? IsActive { get; set; }
+        public int? DisplayOrder { get; set; }
+    }
+}
+

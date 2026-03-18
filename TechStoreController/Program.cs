@@ -85,6 +85,7 @@ namespace TechStoreController
             builder.Services.AddScoped<IMembershipTierRepository, MembershipTierRepository>();
             builder.Services.AddScoped<IPointTransactionRepository, PointTransactionRepository>();
             builder.Services.AddScoped<ILinkedAccountRepository, LinkedAccountRepository>();
+            builder.Services.AddScoped<IProductVariantRepository, ProductVariantRepository>();
 
             // ============================================
             // Application Layer (BAL) - Services
@@ -94,6 +95,7 @@ namespace TechStoreController
             builder.Services.AddScoped<IBrandService, BrandService>();
             builder.Services.AddScoped<IProductImageService, ProductImageService>();
             builder.Services.AddScoped<IProductService, ProductService>();
+            builder.Services.AddScoped<IProductVariantService, ProductVariantService>();
             builder.Services.AddScoped<IOrderService, OrderService>();
             builder.Services.AddScoped<IAddressService, AddressService>();
             builder.Services.AddScoped<ICartService, CartService>();
