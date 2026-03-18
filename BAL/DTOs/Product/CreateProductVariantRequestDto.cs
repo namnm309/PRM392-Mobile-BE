@@ -20,6 +20,9 @@ namespace BAL.DTOs.Product
         public int? RamGb { get; set; }
         public int? StorageGb { get; set; }
 
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
         [Required]
         [Range(0, double.MaxValue, ErrorMessage = "Price must be greater than or equal to 0")]
         public decimal Price { get; set; }

@@ -10,6 +10,7 @@ namespace BAL.DTOs.Product
         public string? ColorHex { get; set; }
         public int? RamGb { get; set; }
         public int? StorageGb { get; set; }
+        public string? ImageUrl { get; set; }
         public decimal Price { get; set; }
         public decimal? DiscountPrice { get; set; }
         public int Stock { get; set; }
