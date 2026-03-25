@@ -10,9 +10,8 @@ namespace BAL.DTOs.Product
         [MaxLength(200)]
         public string? VariantName { get; set; }
 
-        [Required]
         [MaxLength(100)]
-        public string ColorName { get; set; } = string.Empty;
+        public string? ColorName { get; set; }
 
         [MaxLength(20)]
         public string? ColorHex { get; set; }

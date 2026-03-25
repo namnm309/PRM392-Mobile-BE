@@ -6,7 +6,7 @@ namespace BAL.DTOs.Product
         public Guid ProductId { get; set; }
         public string? Sku { get; set; }
         public string? VariantName { get; set; }
-        public string ColorName { get; set; } = string.Empty;
+        public string? ColorName { get; set; }
         public string? ColorHex { get; set; }
         public int? RamGb { get; set; }
         public int? StorageGb { get; set; }

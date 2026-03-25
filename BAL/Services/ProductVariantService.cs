@@ -44,7 +44,7 @@ namespace BAL.Services
                 ProductId = productId,
                 Sku = string.IsNullOrWhiteSpace(request.Sku) ? null : request.Sku.Trim(),
                 VariantName = string.IsNullOrWhiteSpace(request.VariantName) ? null : request.VariantName.Trim(),
-                ColorName = request.ColorName.Trim(),
+                ColorName = string.IsNullOrWhiteSpace(request.ColorName) ? null : request.ColorName.Trim(),
                 ColorHex = string.IsNullOrWhiteSpace(request.ColorHex) ? null : request.ColorHex.Trim(),
                 RamGb = request.RamGb,
                 StorageGb = request.StorageGb,
@@ -79,10 +79,10 @@ namespace BAL.Services
                 entity.Sku = string.IsNullOrWhiteSpace(request.Sku) ? null : request.Sku.Trim();
             if (request.VariantName != null)
                 entity.VariantName = string.IsNullOrWhiteSpace(request.VariantName) ? null : request.VariantName.Trim();
-            if (request.ColorName != null)
-                entity.ColorName = request.ColorName.Trim();
-            if (request.ColorHex != null)
-                entity.ColorHex = string.IsNullOrWhiteSpace(request.ColorHex) ? null : request.ColorHex.Trim();
+            if (request.ColorName.HasValue)
+                entity.ColorName = string.IsNullOrWhiteSpace(request.ColorName.Value) ? null : request.ColorName.Value.Trim();
+            if (request.ColorHex.HasValue)
+                entity.ColorHex = string.IsNullOrWhiteSpace(request.ColorHex.Value) ? null : request.ColorHex.Value.Trim();
             if (request.RamGb.HasValue)
                 entity.RamGb = request.RamGb.Value;
             if (request.StorageGb.HasValue)
