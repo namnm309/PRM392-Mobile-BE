@@ -22,10 +22,9 @@ namespace DAL.Models
         [MaxLength(200)]
         public string? VariantName { get; set; }
 
-        [Required]
         [Column("color_name")]
         [MaxLength(100)]
-        public string ColorName { get; set; } = string.Empty;
+        public string? ColorName { get; set; }
 
         [Column("color_hex")]
         [MaxLength(20)]

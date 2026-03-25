@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using BAL.DTOs.Common;
 
 namespace BAL.DTOs.Product
 {
@@ -10,11 +11,9 @@ namespace BAL.DTOs.Product
         [MaxLength(200)]
         public string? VariantName { get; set; }
 
-        [MaxLength(100)]
-        public string? ColorName { get; set; }
+        public OptionalField<string?> ColorName { get; set; }
 
-        [MaxLength(20)]
-        public string? ColorHex { get; set; }
+        public OptionalField<string?> ColorHex { get; set; }
 
         public int? RamGb { get; set; }
         public int? StorageGb { get; set; }
